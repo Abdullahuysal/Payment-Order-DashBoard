@@ -72,5 +72,3 @@ export const useAppStore = create<AppState>()(
     },
   ),
 );
-
-export const getCurrentEnv = (): AppEnvironment => useAppStore.getState().environment;

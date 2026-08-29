@@ -1,4 +1,4 @@
-import type { Status } from '@/types';
+import type { AppEnvironment } from '@/types';
 
 export type HealthGroup = 'payment' | 'order' | 'platform' | 'custom';
 
@@ -18,6 +18,7 @@ export const HEALTH_GROUP_LABEL: Record<HealthGroup, string> = {
 
 export interface HealthCheck {
   id: string;
+  environment: AppEnvironment;
   name: string;
   group: HealthGroup;
   method: string;
@@ -25,32 +26,30 @@ export interface HealthCheck {
   headers?: Record<string, string> | undefined;
   body?: string | undefined;
   expectedStatus: number;
+  isEnabled: boolean;
   source: 'builtin' | 'custom';
   createdAt?: string | undefined;
+  updatedAt?: string | undefined;
+  rowVersion: string;
 }
 
-export interface ServiceHealth {
-  checkId: string;
+export interface CreateHealthCheckRequest {
   name: string;
   group: HealthGroup;
-  probeUrl: string;
   method: string;
-  status: Status;
-  httpStatus: number | null;
-  latencyMs: number | null;
-  checkedAt: string;
-  detail?: string | undefined;
+  url: string;
+  headers?: Record<string, string> | undefined;
+  body?: string | undefined;
+  expectedStatus: number;
 }
 
-export interface HealthRow {
-  check: HealthCheck;
-  health: ServiceHealth | undefined;
+export interface UpdateHealthCheckRequest extends CreateHealthCheckRequest {
+  isEnabled: boolean;
+  rowVersion: string;
 }
 
 export interface HealthSummary {
   total: number;
-  up: number;
-  degraded: number;
-  down: number;
-  unknown: number;
+  enabled: number;
+  disabled: number;
 }

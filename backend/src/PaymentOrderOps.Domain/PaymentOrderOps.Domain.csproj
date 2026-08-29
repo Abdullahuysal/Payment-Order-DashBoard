@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PaymentOrderOps.Domain</RootNamespace>
+    <AssemblyName>PaymentOrderOps.Domain</AssemblyName>
+  </PropertyGroup>
+
+</Project>

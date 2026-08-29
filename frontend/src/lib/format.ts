@@ -20,13 +20,3 @@ export function formatRelative(input: string | Date | null | undefined): string 
   }
   return relTime.format(value, 'week');
 }
-
-export function formatLatency(ms: number | null | undefined): string {
-  if (ms == null) return '—';
-  if (ms < 1000) return `${Math.round(ms)} ms`;
-  return `${(ms / 1000).toFixed(1)} s`;
-}
-
-export function joinUrl(base: string, path: string): string {
-  return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
-}

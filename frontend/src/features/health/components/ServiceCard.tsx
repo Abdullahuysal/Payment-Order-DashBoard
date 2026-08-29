@@ -1,121 +1,103 @@
 import { useEffect, useState } from 'react';
-import { Check, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { Check, Pencil, Trash2 } from 'lucide-react';
 
-import { Badge, Card, CardBody, CardHeader, StatusDot } from '@/components/ui';
+import { Badge, Card, CardBody, CardHeader } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { formatLatency, formatRelative } from '@/lib/format';
-import type { Status } from '@/types';
+import { formatRelative } from '@/lib/format';
 
-import { builtinAlivePath, isBuiltinPathOverridden } from '../checks';
-import { useHealthConfigStore } from '../store';
-import { HEALTH_GROUP_LABEL, type HealthRow } from '../types';
-
-const STATUS_TONE: Record<Status, 'up' | 'degraded' | 'down' | 'neutral'> = {
-  up: 'up',
-  degraded: 'degraded',
-  down: 'down',
-  unknown: 'neutral',
-};
+import { useDeleteHealthCheck, useUpdateHealthCheck } from '../hooks/useHealthChecks';
+import { toUpdateRequest } from '../mapping';
+import { HEALTH_GROUP_LABEL, type HealthCheck } from '../types';
 
 export interface ServiceCardProps {
-  row: HealthRow;
-  isRefreshing: boolean;
+  check: HealthCheck;
 }
 
-export function ServiceCard({ row, isRefreshing }: ServiceCardProps) {
-  const { check, health } = row;
-  const isCustom = check.source === 'custom';
+export function ServiceCard({ check }: ServiceCardProps) {
+  const update = useUpdateHealthCheck();
+  const remove = useDeleteHealthCheck();
+  const busy = update.isPending || remove.isPending;
 
-  const overrides = useHealthConfigStore((s) => s.overrides);
-  const setOverride = useHealthConfigStore((s) => s.setOverride);
-  const clearOverride = useHealthConfigStore((s) => s.clearOverride);
-  const updateCustomCheck = useHealthConfigStore((s) => s.updateCustomCheck);
-  const removeCustomCheck = useHealthConfigStore((s) => s.removeCustomCheck);
-
-  const status: Status = health?.status ?? 'unknown';
   const headerCount = check.headers ? Object.keys(check.headers).length : 0;
 
-  const editLabel = isCustom ? 'URL' : 'Alive path';
-  const editValue = isCustom ? check.url : builtinAlivePath(check.id, overrides);
-  const canReset = !isCustom && isBuiltinPathOverridden(check.id, overrides);
-
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(editValue);
+  const [draft, setDraft] = useState(check.url);
 
   useEffect(() => {
-    if (!editing) setDraft(editValue);
-  }, [editValue, editing]);
+    if (!editing) setDraft(check.url);
+  }, [check.url, editing]);
 
-  function commit() {
+  function commitUrl() {
     const next = draft.trim();
     setEditing(false);
-    if (!next || next === editValue) return;
-    if (isCustom) {
-      updateCustomCheck(check.id, { url: next });
-    } else {
-      setOverride(check.id, next.startsWith('/') ? next : `/${next}`);
-    }
+    if (!next || next === check.url) return;
+    update.mutate({ id: check.id, input: toUpdateRequest(check, { url: next }) });
   }
 
+  function toggleEnabled() {
+    update.mutate({ id: check.id, input: toUpdateRequest(check, { isEnabled: !check.isEnabled }) });
+  }
+
+  const mutationError = update.error ?? remove.error;
+
   return (
-    <Card>
+    <Card className={cn(busy && 'opacity-60')}>
       <CardHeader>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <StatusDot status={status} pulse={isRefreshing} />
+            <span
+              className={cn(
+                'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                check.isEnabled ? 'bg-status-up' : 'bg-status-unknown',
+              )}
+            />
             <span className="truncate text-sm font-semibold text-fg">{check.name}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <Badge tone={isCustom ? 'logs' : 'neutral'}>{HEALTH_GROUP_LABEL[check.group]}</Badge>
-            {check.method !== 'GET' && <Badge mono>{check.method}</Badge>}
-            <Badge tone={STATUS_TONE[status]} mono>
-              {health?.httpStatus ?? '—'}
+            <Badge>{HEALTH_GROUP_LABEL[check.group]}</Badge>
+            <Badge tone={check.source === 'custom' ? 'logs' : 'neutral'}>
+              {check.source === 'custom' ? 'Özel' : 'Yerleşik'}
             </Badge>
+            {check.method !== 'GET' && <Badge mono>{check.method}</Badge>}
+            <Badge mono>beklenen {check.expectedStatus}</Badge>
             {headerCount > 0 && (
               <span className="text-[11px] text-fg-subtle">{headerCount} header</span>
             )}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className="tnum text-right text-xs text-fg-muted">
-            {formatLatency(health?.latencyMs)}
-          </span>
-          {isCustom && (
-            <button
-              onClick={() => removeCustomCheck(check.id)}
-              className="text-fg-subtle hover:text-status-down"
-              title="Kaldır"
-              aria-label={`${check.name} kaldır`}
-            >
-              <Trash2 size={13} />
-            </button>
-          )}
+          <button
+            onClick={toggleEnabled}
+            disabled={busy}
+            className="text-[11px] text-fg-subtle hover:text-fg-muted disabled:opacity-40"
+            title={check.isEnabled ? 'Devre dışı bırak' : 'Etkinleştir'}
+          >
+            {check.isEnabled ? 'aktif' : 'pasif'}
+          </button>
+          <button
+            onClick={() => remove.mutate(check.id)}
+            disabled={busy}
+            className="text-fg-subtle hover:text-status-down disabled:opacity-40"
+            title="Kaldır"
+            aria-label={`${check.name} kaldır`}
+          >
+            <Trash2 size={13} />
+          </button>
         </div>
       </CardHeader>
 
       <CardBody className="space-y-2.5">
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wide text-fg-subtle">{editLabel}</span>
-            <div className="flex items-center gap-1">
-              {canReset && !editing && (
-                <button
-                  onClick={() => clearOverride(check.id)}
-                  className="flex items-center gap-1 text-[11px] text-fg-subtle hover:text-fg-muted"
-                  title="Varsayılana döndür"
-                >
-                  <RotateCcw size={11} />
-                  sıfırla
-                </button>
-              )}
-              <button
-                onClick={() => (editing ? commit() : setEditing(true))}
-                className="flex items-center gap-1 text-[11px] text-fg-subtle hover:text-fg-muted"
-              >
-                {editing ? <Check size={11} /> : <Pencil size={11} />}
-                {editing ? 'kaydet' : 'düzenle'}
-              </button>
-            </div>
+            <span className="text-[11px] uppercase tracking-wide text-fg-subtle">URL</span>
+            <button
+              onClick={() => (editing ? commitUrl() : setEditing(true))}
+              disabled={busy}
+              className="flex items-center gap-1 text-[11px] text-fg-subtle hover:text-fg-muted disabled:opacity-40"
+            >
+              {editing ? <Check size={11} /> : <Pencil size={11} />}
+              {editing ? 'kaydet' : 'düzenle'}
+            </button>
           </div>
 
           {editing ? (
@@ -123,9 +105,9 @@ export function ServiceCard({ row, isRefreshing }: ServiceCardProps) {
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onBlur={commit}
+              onBlur={commitUrl}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') commit();
+                if (e.key === 'Enter') commitUrl();
                 if (e.key === 'Escape') setEditing(false);
               }}
               spellCheck={false}
@@ -134,29 +116,20 @@ export function ServiceCard({ row, isRefreshing }: ServiceCardProps) {
           ) : (
             <p
               className="tnum truncate rounded border border-border bg-bg px-2 py-1 text-xs text-fg-muted"
-              title={editValue}
+              title={check.url}
             >
-              {editValue}
+              {check.url}
             </p>
           )}
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-fg-subtle">
-          <span className="tnum truncate" title={health?.probeUrl ?? check.url}>
-            {(health?.probeUrl ?? check.url).replace(/^https?:\/\//, '')}
-          </span>
-          <span className="shrink-0">{formatRelative(health?.checkedAt)}</span>
+          <span className="tnum truncate">{check.method}</span>
+          <span className="shrink-0">güncellendi {formatRelative(check.updatedAt)}</span>
         </div>
 
-        {health?.detail && (
-          <p
-            className={cn(
-              'text-xs',
-              status === 'down' ? 'text-status-down' : 'text-status-degraded',
-            )}
-          >
-            {health.detail}
-          </p>
+        {mutationError instanceof Error && (
+          <p className="text-xs text-status-down">{mutationError.message}</p>
         )}
       </CardBody>
     </Card>

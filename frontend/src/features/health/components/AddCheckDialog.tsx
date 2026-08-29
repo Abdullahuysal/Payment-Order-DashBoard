@@ -5,11 +5,15 @@ import { Badge, Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 import { deriveNameFromUrl, parseCurl } from '../curl';
-import { useHealthConfigStore, type NewHealthCheck } from '../store';
-import { HEALTH_GROUPS, HEALTH_GROUP_LABEL, type HealthGroup } from '../types';
+import { useCreateHealthCheck } from '../hooks/useHealthChecks';
+import {
+  HEALTH_GROUPS,
+  HEALTH_GROUP_LABEL,
+  type CreateHealthCheckRequest,
+  type HealthGroup,
+} from '../types';
 
 export interface AddCheckDialogProps {
-  open: boolean;
   onClose: () => void;
 }
 
@@ -18,8 +22,8 @@ type Mode = 'curl' | 'manual';
 const CURL_PLACEHOLDER = `curl -X GET 'https://payment-gateway.boyner.internal/actuator/health' \\
   -H 'Authorization: Bearer <token>'`;
 
-export function AddCheckDialog({ open, onClose }: AddCheckDialogProps) {
-  const addCustomCheck = useHealthConfigStore((s) => s.addCustomCheck);
+export function AddCheckDialog({ onClose }: AddCheckDialogProps) {
+  const create = useCreateHealthCheck();
 
   const [mode, setMode] = useState<Mode>('curl');
   const [curlText, setCurlText] = useState('');
@@ -31,25 +35,12 @@ export function AddCheckDialog({ open, onClose }: AddCheckDialogProps) {
   const [url, setUrl] = useState('');
 
   useEffect(() => {
-    if (!open) {
-      setCurlText('');
-      setName('');
-      setNameDirty(false);
-      setGroup('custom');
-      setExpectedStatus(200);
-      setMethod('GET');
-      setUrl('');
-      setMode('curl');
-    }
-  }, [open]);
-
-  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
     }
-    if (open) window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [onClose]);
 
   const parsed = useMemo(() => (curlText.trim() ? parseCurl(curlText) : null), [curlText]);
 
@@ -72,11 +63,12 @@ export function AddCheckDialog({ open, onClose }: AddCheckDialogProps) {
     name.trim().length > 0 &&
     expectedStatus >= 100 &&
     expectedStatus <= 599 &&
-    (mode === 'curl' ? Boolean(parsed?.ok) : manualUrlValid);
+    (mode === 'curl' ? Boolean(parsed?.ok) : manualUrlValid) &&
+    !create.isPending;
 
   function submit() {
     if (!canSubmit) return;
-    let payload: NewHealthCheck;
+    let payload: CreateHealthCheckRequest;
 
     if (mode === 'curl' && parsed?.ok) {
       const { method: m, url: u, headers, body } = parsed.value;
@@ -99,11 +91,8 @@ export function AddCheckDialog({ open, onClose }: AddCheckDialogProps) {
       };
     }
 
-    addCustomCheck(payload);
-    onClose();
+    create.mutate(payload, { onSuccess: () => onClose() });
   }
-
-  if (!open) return null;
 
   return (
     <div
@@ -245,18 +234,24 @@ export function AddCheckDialog({ open, onClose }: AddCheckDialogProps) {
               />
             </label>
           </div>
+
+          {create.isError && (
+            <p className="text-xs text-status-down">
+              Eklenemedi: {create.error instanceof Error ? create.error.message : 'bilinmeyen hata'}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t border-border px-4 py-3">
           <span className="text-[11px] text-fg-subtle">
-            Faz 0 — sonuç mock; tanım tarayıcıda saklanır.
+            Ops API’ye <span className="tnum">POST</span> edilir.
           </span>
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={onClose}>
               Vazgeç
             </Button>
             <Button size="sm" variant="primary" onClick={submit} disabled={!canSubmit}>
-              Ekle
+              {create.isPending ? 'Ekleniyor…' : 'Ekle'}
             </Button>
           </div>
         </div>

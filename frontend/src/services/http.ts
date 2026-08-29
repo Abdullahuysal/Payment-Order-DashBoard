@@ -1,6 +1,6 @@
-import type { AppEnvironment, ApiErrorShape } from '@/types';
+import type { ApiErrorShape } from '@/types';
 
-import { config, resolveApiBaseUrl } from './config';
+import { config } from './config';
 
 export class HttpError extends Error implements ApiErrorShape {
   readonly status: number;
@@ -72,7 +72,7 @@ export function createHttpClient(baseUrl: string, interceptors: Interceptors = {
       throw new HttpError({
         status: 0,
         message:
-          'Base URL tanımlı değil — .env içindeki VITE_API_BASE_URL_* değerini kontrol edin.',
+          'Base URL tanımlı değil — .env içindeki VITE_API_BASE_URL değerini kontrol edin.',
         url: path,
         code: 'NO_BASE_URL',
       });
@@ -147,16 +147,19 @@ export function createHttpClient(baseUrl: string, interceptors: Interceptors = {
 async function parseBody(response: Response): Promise<unknown> {
   const contentType = response.headers.get('content-type') ?? '';
   if (response.status === 204 || !contentType) return null;
-  if (contentType.includes('application/json')) {
+  if (contentType.includes('json')) {
     return (await response.json()) as unknown;
   }
   return response.text();
 }
 
 function extractMessage(payload: unknown): string | undefined {
-  if (payload && typeof payload === 'object' && 'message' in payload) {
-    const message: unknown = payload.message;
-    if (typeof message === 'string') return message;
+  if (!payload || typeof payload !== 'object') return undefined;
+  for (const key of ['detail', 'message', 'title'] as const) {
+    if (key in payload) {
+      const value: unknown = (payload as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.length > 0) return value;
+    }
   }
   return undefined;
 }
@@ -180,13 +183,9 @@ const devInterceptors: Interceptors = import.meta.env.DEV
     }
   : {};
 
-const clientCache = new Map<AppEnvironment, HttpClient>();
+let sharedClient: HttpClient | undefined;
 
-export function apiClientForEnv(env: AppEnvironment): HttpClient {
-  let client = clientCache.get(env);
-  if (!client) {
-    client = createHttpClient(resolveApiBaseUrl(env), devInterceptors);
-    clientCache.set(env, client);
-  }
-  return client;
+export function apiClient(): HttpClient {
+  sharedClient ??= createHttpClient(config.apiBaseUrl, devInterceptors);
+  return sharedClient;
 }

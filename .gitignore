@@ -83,3 +83,21 @@ venv/
 
 **/.claude/settings.local.json
 **/.claude/*.local.json
+
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userprefs
+project.lock.json
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+BenchmarkDotNet.Artifacts/
+*.nupkg
+*.snupkg
+.dotnet/
+msbuild.binlog
+*.received.*
+TestResults/

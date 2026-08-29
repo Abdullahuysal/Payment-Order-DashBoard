@@ -1,40 +1,39 @@
-import { apiClientForEnv } from '@/services/http';
+import { ENVIRONMENT_HEADER } from '@/services/config';
+import { apiClient } from '@/services/http';
 import type { AppEnvironment } from '@/types';
 
-import { mockHealthChecks } from '../mock';
-import type { HealthCheck, ServiceHealth } from '../types';
+import type { CreateHealthCheckRequest, HealthCheck, UpdateHealthCheckRequest } from '../types';
 
-export interface FetchHealthArgs {
-  env: AppEnvironment;
-  checks: HealthCheck[];
-  signal?: AbortSignal;
+const RESOURCE = '/api/v1/service-health/checks';
+
+function envHeaders(env: AppEnvironment): Record<string, string> {
+  return { [ENVIRONMENT_HEADER]: env };
 }
 
-export interface ProbeSpec {
-  id: string;
-  method: string;
-  url: string;
-  headers?: Record<string, string>;
-  body?: string;
-  expectedStatus: number;
-}
+export const serviceHealthApi = {
+  list(env: AppEnvironment, signal?: AbortSignal): Promise<HealthCheck[]> {
+    return apiClient().get<HealthCheck[]>(RESOURCE, {
+      headers: envHeaders(env),
+      ...(signal ? { signal } : {}),
+    });
+  },
 
-export function toProbeSpec(c: HealthCheck): ProbeSpec {
-  return {
-    id: c.id,
-    method: c.method,
-    url: c.url,
-    expectedStatus: c.expectedStatus,
-    ...(c.headers && Object.keys(c.headers).length > 0 ? { headers: c.headers } : {}),
-    ...(c.body !== undefined ? { body: c.body } : {}),
-  };
-}
+  getById(env: AppEnvironment, id: string, signal?: AbortSignal): Promise<HealthCheck> {
+    return apiClient().get<HealthCheck>(`${RESOURCE}/${id}`, {
+      headers: envHeaders(env),
+      ...(signal ? { signal } : {}),
+    });
+  },
 
-export async function fetchHealthChecks({
-  env,
-  checks,
-}: FetchHealthArgs): Promise<ServiceHealth[]> {
-  void apiClientForEnv(env);
+  create(env: AppEnvironment, input: CreateHealthCheckRequest): Promise<HealthCheck> {
+    return apiClient().post<HealthCheck>(RESOURCE, input, { headers: envHeaders(env) });
+  },
 
-  return mockHealthChecks(env, checks);
-}
+  update(env: AppEnvironment, id: string, input: UpdateHealthCheckRequest): Promise<HealthCheck> {
+    return apiClient().put<HealthCheck>(`${RESOURCE}/${id}`, input, { headers: envHeaders(env) });
+  },
+
+  remove(env: AppEnvironment, id: string): Promise<void> {
+    return apiClient().delete<void>(`${RESOURCE}/${id}`, { headers: envHeaders(env) });
+  },
+};

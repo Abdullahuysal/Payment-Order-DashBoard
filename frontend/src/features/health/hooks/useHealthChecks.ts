@@ -1,68 +1,90 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAppStore } from '@/app/store';
 
-import { fetchHealthChecks } from '../api/health.api';
-import { checksSignature, composeChecks } from '../checks';
-import { useHealthConfigStore } from '../store';
-import type { HealthRow, HealthSummary, ServiceHealth } from '../types';
+import { serviceHealthApi } from '../api/health.api';
+import { sortChecks } from '../mapping';
+import type {
+  CreateHealthCheckRequest,
+  HealthCheck,
+  HealthSummary,
+  UpdateHealthCheckRequest,
+} from '../types';
 
-export const HEALTH_REFETCH_MS = 15_000;
-
-export const healthKeys = {
-  all: ['health'] as const,
-  list: (env: string, signature: string) => ['health', 'list', env, signature] as const,
+export const serviceHealthKeys = {
+  all: ['service-health'] as const,
+  list: (env: string) => ['service-health', 'checks', env] as const,
 };
 
 interface UseHealthChecksResult {
-  rows: HealthRow[];
+  checks: HealthCheck[];
   summary: HealthSummary;
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
   error: Error | null;
-  refetchIntervalMs: number;
   refetch: () => void;
 }
 
 export function useHealthChecks(): UseHealthChecksResult {
   const env = useAppStore((s) => s.environment);
-  const customChecks = useHealthConfigStore((s) => s.customChecks);
-  const overrides = useHealthConfigStore((s) => s.overrides);
-
-  const checks = useMemo(() => composeChecks(customChecks, overrides), [customChecks, overrides]);
-  const signature = useMemo(() => checksSignature(checks), [checks]);
 
   const query = useQuery({
-    queryKey: healthKeys.list(env, signature),
-    queryFn: ({ signal }) => fetchHealthChecks({ env, checks, signal }),
-    refetchInterval: HEALTH_REFETCH_MS,
+    queryKey: serviceHealthKeys.list(env),
+    queryFn: ({ signal }) => serviceHealthApi.list(env, signal),
     refetchOnWindowFocus: true,
-    staleTime: HEALTH_REFETCH_MS / 2,
-    placeholderData: (prev) => prev,
+    staleTime: 10_000,
   });
 
-  const rows = useMemo<HealthRow[]>(() => {
-    const byId = new Map<string, ServiceHealth>();
-    for (const h of query.data ?? []) byId.set(h.checkId, h);
-    return checks.map((check) => ({ check, health: byId.get(check.id) }));
-  }, [checks, query.data]);
+  const checks = useMemo(() => sortChecks(query.data ?? []), [query.data]);
 
   const summary = useMemo<HealthSummary>(() => {
-    const acc: HealthSummary = { total: rows.length, up: 0, degraded: 0, down: 0, unknown: 0 };
-    for (const r of rows) acc[r.health?.status ?? 'unknown'] += 1;
-    return acc;
-  }, [rows]);
+    const enabled = checks.filter((c) => c.isEnabled).length;
+    return { total: checks.length, enabled, disabled: checks.length - enabled };
+  }, [checks]);
 
   return {
-    rows,
+    checks,
     summary,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
-    refetchIntervalMs: HEALTH_REFETCH_MS,
     refetch: () => void query.refetch(),
   };
+}
+
+function useInvalidateList() {
+  const env = useAppStore((s) => s.environment);
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: serviceHealthKeys.list(env) });
+}
+
+export function useCreateHealthCheck() {
+  const env = useAppStore((s) => s.environment);
+  const invalidate = useInvalidateList();
+  return useMutation({
+    mutationFn: (input: CreateHealthCheckRequest) => serviceHealthApi.create(env, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateHealthCheck() {
+  const env = useAppStore((s) => s.environment);
+  const invalidate = useInvalidateList();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateHealthCheckRequest }) =>
+      serviceHealthApi.update(env, id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteHealthCheck() {
+  const env = useAppStore((s) => s.environment);
+  const invalidate = useInvalidateList();
+  return useMutation({
+    mutationFn: (id: string) => serviceHealthApi.remove(env, id),
+    onSuccess: invalidate,
+  });
 }
