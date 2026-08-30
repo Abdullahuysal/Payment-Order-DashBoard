@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using PaymentOrderOps.Api.Features.MessageQueues.V1.Shared;
 using PaymentOrderOps.Api.Features.ServiceHealth.V1.CreateCheck;
+using PaymentOrderOps.Api.Features.ServiceHealth.V1.Shared;
 using PaymentOrderOps.Api.Features.TestRuns.V1.Shared;
 using PaymentOrderOps.Api.Infrastructure;
 using PaymentOrderOps.Api.Infrastructure.Endpoints;
@@ -53,6 +54,8 @@ builder.Services.AddScoped<EnvironmentContextHolder>();
 builder.Services.AddScoped<IEnvironmentContext>(sp => sp.GetRequiredService<EnvironmentContextHolder>());
 
 builder.Services.AddPersistence(builder.Configuration);
+
+builder.Services.AddServiceHealthProbe(builder.Configuration);
 
 builder.Services.AddMessageBrokers(builder.Configuration);
 builder.Services.AddScoped<MessageBrokerResolver>();

@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Play } from 'lucide-react';
 
 import { useAppStore } from '@/app/store';
 import { Badge, Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { ENV_LABELS } from '@/services/config';
 
-import { AddCheckDialog } from './components/AddCheckDialog';
+import { CheckDialog } from './components/CheckDialog';
 import { ServiceCard } from './components/ServiceCard';
-import { useHealthChecks } from './hooks/useHealthChecks';
+import { useHealthChecks, useRunAllHealthChecks } from './hooks/useHealthChecks';
 
 export default function HealthPage() {
   const [addOpen, setAddOpen] = useState(false);
   const env = useAppStore((s) => s.environment);
-  const { checks, summary, isLoading, isFetching, isError, error, refetch } = useHealthChecks();
+  const { checks, probes, summary, isLoading, isFetching, isError, error, refetch } =
+    useHealthChecks();
+  const runAll = useRunAllHealthChecks();
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -23,7 +25,8 @@ export default function HealthPage() {
           <p className="mt-0.5 text-xs text-fg-muted">
             <span className="text-fg">{ENV_LABELS[env]}</span> ortamındaki alive tanımları. Ortam
             Topbar’dan seçilir; ops API’ye <span className="tnum">X-Environment</span> başlığıyla
-            gönderilir.
+            gönderilir. Durum, isteğin gerçekten gönderilip beklenen HTTP kodunun karşılaştırılması
+            ile belirlenir.
           </p>
         </div>
 
@@ -31,13 +34,22 @@ export default function HealthPage() {
           {summary.total > 0 && (
             <div className="flex items-center gap-2 text-xs">
               <Count label="toplam" value={summary.total} />
-              <Count label="aktif" value={summary.enabled} tone="up" />
-              <Count label="pasif" value={summary.disabled} />
+              <Count label="ayakta" value={summary.up} tone="up" />
+              <Count label="sorunlu" value={summary.down} tone="down" />
+              <Count label="test edilmedi" value={summary.unknown} />
             </div>
           )}
           <Button size="sm" onClick={refetch} disabled={isFetching}>
             <RefreshCw size={13} className={cn(isFetching && 'animate-spin')} />
             Yenile
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => runAll.mutate()}
+            disabled={runAll.isPending || checks.length === 0}
+          >
+            <Play size={13} className={cn(runAll.isPending && 'animate-pulse')} />
+            {runAll.isPending ? 'Test ediliyor…' : 'Tümünü test et'}
           </Button>
           <Button size="sm" variant="primary" onClick={() => setAddOpen(true)}>
             <Plus size={13} />
@@ -52,6 +64,12 @@ export default function HealthPage() {
         </div>
       )}
 
+      {runAll.error instanceof Error && (
+        <div className="rounded-lg border border-status-down/30 bg-surface px-4 py-3 text-xs text-status-down">
+          Testler çalıştırılamadı: {runAll.error.message}
+        </div>
+      )}
+
       {isLoading ? (
         <SkeletonGrid />
       ) : checks.length === 0 && !isError ? (
@@ -59,19 +77,19 @@ export default function HealthPage() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {checks.map((check) => (
-            <ServiceCard key={check.id} check={check} />
+            <ServiceCard key={check.id} check={check} probe={probes[check.id]} />
           ))}
         </div>
       )}
 
-      {addOpen && <AddCheckDialog onClose={() => setAddOpen(false)} />}
+      {addOpen && <CheckDialog onClose={() => setAddOpen(false)} />}
     </div>
   );
 }
 
-function Count({ label, value, tone }: { label: string; value: number; tone?: 'up' }) {
+function Count({ label, value, tone }: { label: string; value: number; tone?: 'up' | 'down' }) {
   return (
-    <Badge tone={tone === 'up' ? 'up' : 'neutral'} mono className="gap-1">
+    <Badge tone={tone ?? 'neutral'} mono className="gap-1">
       {value}
       <span className="text-fg-subtle">{label}</span>
     </Badge>
@@ -95,7 +113,7 @@ function SkeletonGrid() {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-40 animate-pulse rounded-lg border border-border bg-surface" />
+        <div key={i} className="h-64 animate-pulse rounded-lg border border-border bg-surface" />
       ))}
     </div>
   );

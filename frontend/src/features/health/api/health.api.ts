@@ -2,9 +2,18 @@ import { ENVIRONMENT_HEADER } from '@/services/config';
 import { apiClient } from '@/services/http';
 import type { AppEnvironment } from '@/types';
 
-import type { CreateHealthCheckRequest, HealthCheck, UpdateHealthCheckRequest } from '../types';
+import type {
+  CreateHealthCheckRequest,
+  HealthCheck,
+  HealthProbeBatchResult,
+  HealthProbeResult,
+  UpdateHealthCheckRequest,
+} from '../types';
 
 const RESOURCE = '/api/v1/service-health/checks';
+
+const PROBE_TIMEOUT_MS = 30_000;
+const PROBE_BATCH_TIMEOUT_MS = 120_000;
 
 function envHeaders(env: AppEnvironment): Record<string, string> {
   return { [ENVIRONMENT_HEADER]: env };
@@ -35,5 +44,20 @@ export const serviceHealthApi = {
 
   remove(env: AppEnvironment, id: string): Promise<void> {
     return apiClient().delete<void>(`${RESOURCE}/${id}`, { headers: envHeaders(env) });
+  },
+
+  /** Actually sends the stored request and compares the response status with expectedStatus. */
+  run(env: AppEnvironment, id: string): Promise<HealthProbeResult> {
+    return apiClient().post<HealthProbeResult>(`${RESOURCE}/${id}/run`, undefined, {
+      headers: envHeaders(env),
+      timeoutMs: PROBE_TIMEOUT_MS,
+    });
+  },
+
+  runAll(env: AppEnvironment): Promise<HealthProbeBatchResult> {
+    return apiClient().post<HealthProbeBatchResult>(`${RESOURCE}/run`, undefined, {
+      headers: envHeaders(env),
+      timeoutMs: PROBE_BATCH_TIMEOUT_MS,
+    });
   },
 };

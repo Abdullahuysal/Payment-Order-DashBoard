@@ -4,6 +4,8 @@ using PaymentOrderOps.Api.Features.ServiceHealth.V1.DeleteCheck;
 using PaymentOrderOps.Api.Features.ServiceHealth.V1.GetCheck;
 using PaymentOrderOps.Api.Features.ServiceHealth.V1.ListChecks;
 using PaymentOrderOps.Api.Features.ServiceHealth.V1.ReplaceCheck;
+using PaymentOrderOps.Api.Features.ServiceHealth.V1.RunCheck;
+using PaymentOrderOps.Api.Features.ServiceHealth.V1.RunChecks;
 using PaymentOrderOps.Api.Infrastructure;
 using PaymentOrderOps.Api.Infrastructure.Endpoints;
 
@@ -30,5 +32,7 @@ public sealed class ServiceHealthV1Module : IEndpointModule
         CreateCheckEndpoint.Map(group);
         ReplaceCheckEndpoint.Map(group);
         DeleteCheckEndpoint.Map(group);
+        RunCheckEndpoint.Map(group);
+        RunChecksEndpoint.Map(group);
     }
 }

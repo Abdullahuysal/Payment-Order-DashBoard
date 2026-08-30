@@ -8,6 +8,8 @@ import { sortChecks } from '../mapping';
 import type {
   CreateHealthCheckRequest,
   HealthCheck,
+  HealthProbeMap,
+  HealthProbeResult,
   HealthSummary,
   UpdateHealthCheckRequest,
 } from '../types';
@@ -15,16 +17,51 @@ import type {
 export const serviceHealthKeys = {
   all: ['service-health'] as const,
   list: (env: string) => ['service-health', 'checks', env] as const,
+  probes: (env: string) => ['service-health', 'probes', env] as const,
 };
+
+const EMPTY_PROBES: HealthProbeMap = {};
 
 interface UseHealthChecksResult {
   checks: HealthCheck[];
+  probes: HealthProbeMap;
   summary: HealthSummary;
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
   error: Error | null;
   refetch: () => void;
+}
+
+/**
+ * Client-side cache of the latest probe outcome per check. Nothing fetches it — the run
+ * mutations write into it, so the cards keep showing the last real result until the next run.
+ */
+export function useHealthProbes(): HealthProbeMap {
+  const env = useAppStore((s) => s.environment);
+  const { data } = useQuery({
+    queryKey: serviceHealthKeys.probes(env),
+    queryFn: () => EMPTY_PROBES,
+    initialData: EMPTY_PROBES,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+  return data;
+}
+
+function useProbeWriter() {
+  const env = useAppStore((s) => s.environment);
+  const queryClient = useQueryClient();
+
+  return (results: readonly HealthProbeResult[]) => {
+    queryClient.setQueryData<HealthProbeMap>(serviceHealthKeys.probes(env), (previous) => {
+      const next: HealthProbeMap = { ...(previous ?? EMPTY_PROBES) };
+      for (const result of results) next[result.checkId] = result;
+      return next;
+    });
+  };
 }
 
 export function useHealthChecks(): UseHealthChecksResult {
@@ -38,14 +75,30 @@ export function useHealthChecks(): UseHealthChecksResult {
   });
 
   const checks = useMemo(() => sortChecks(query.data ?? []), [query.data]);
+  const probes = useHealthProbes();
 
   const summary = useMemo<HealthSummary>(() => {
     const enabled = checks.filter((c) => c.isEnabled).length;
-    return { total: checks.length, enabled, disabled: checks.length - enabled };
-  }, [checks]);
+    let up = 0;
+    let down = 0;
+    for (const check of checks) {
+      const status = probes[check.id]?.status;
+      if (status === 'up') up += 1;
+      else if (status === 'down' || status === 'error') down += 1;
+    }
+    return {
+      total: checks.length,
+      enabled,
+      disabled: checks.length - enabled,
+      up,
+      down,
+      unknown: checks.length - up - down,
+    };
+  }, [checks, probes]);
 
   return {
     checks,
+    probes,
     summary,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
@@ -86,5 +139,24 @@ export function useDeleteHealthCheck() {
   return useMutation({
     mutationFn: (id: string) => serviceHealthApi.remove(env, id),
     onSuccess: invalidate,
+  });
+}
+
+/** Runs one check for real and stores its outcome. */
+export function useRunHealthCheck() {
+  const env = useAppStore((s) => s.environment);
+  const writeProbes = useProbeWriter();
+  return useMutation({
+    mutationFn: (id: string) => serviceHealthApi.run(env, id),
+    onSuccess: (result) => writeProbes([result]),
+  });
+}
+
+export function useRunAllHealthChecks() {
+  const env = useAppStore((s) => s.environment);
+  const writeProbes = useProbeWriter();
+  return useMutation({
+    mutationFn: () => serviceHealthApi.runAll(env),
+    onSuccess: (batch) => writeProbes(batch.results),
   });
 }
