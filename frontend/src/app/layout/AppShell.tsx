@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 
 import { useApplyTheme } from '@/app/hooks/useApplyTheme';
+import { useApplyLocale } from '@/i18n/useApplyLocale';
 
 import { AppShellErrorBoundary } from './AppShellErrorBoundary';
 import { CommandPalette } from './CommandPalette';
@@ -9,6 +10,7 @@ import { Topbar } from './Topbar';
 
 export function AppShell() {
   useApplyTheme();
+  useApplyLocale();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg text-fg">

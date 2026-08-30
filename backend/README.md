@@ -7,8 +7,12 @@ Internal ops API that backs the `frontend/` dashboard. Slices shipped so far:
 - **Message Queues & DLQ** — read-only RabbitMQ + Kafka observability (queues, topics,
   consumer-group lag, dead-letter inspection, computed alerts) with a server-side domain
   scope (`nameMatches` globs + a persisted per-environment `/scope` profile). No remediation.
+- **Test Runs** — seeded end-to-end scenarios, environment-scoped input profiles, and
+  asynchronous runs executed by a background worker against config-driven **company targets**
+  (HTTP APIs, SOAP services, a read-only SQL Server). Live progress over SSE; optional bulk
+  repeat. Disabled in `production`.
 
-Other modules (test-runs, orders, logs, auth) are not implemented yet.
+Other modules (orders, logs, auth) are not implemented yet.
 
 **Single deployment, three logical environments.** One host + one connection string hold
 `dev` / `preprod` / `production` data; every request carries an `X-Environment` header that
@@ -68,9 +72,22 @@ Then:
 | `Cors:AllowedOrigins` | allowed browser origins (bound via Options pattern to `CorsSettings`) | `["http://localhost:5173"]` |
 | `MessageBrokers:<Env>:RabbitMq` | management URL + creds + `VirtualHost` + `DeadLetterQueuePatterns` + `BacklogReadyThreshold` (default `100`) | unset → `503` from RabbitMQ endpoints in that env |
 | `MessageBrokers:<Env>:Kafka` | `BootstrapServers`, `SecurityProtocol`, optional SASL, `DeadLetterTopicPatterns`, lag thresholds | unset → `503` from Kafka endpoints in that env |
+| `CompanyApis:<Env>:<name>` | `BaseUrl` · `AuthRef` · `TimeoutSeconds` — a named company HTTP API for `httpRequest` / `poll` steps | no block for the env → `503` at run start |
+| `SoapServices:<Env>:<name>` | `Endpoint` · `AuthRef` · `DefaultSoapAction` · `TimeoutSeconds` — a named SOAP service for `soapRequest` steps | no block for the env → `503` at run start |
+| `CompanyDb:<Env>` | `ConnectionString` (a **SQL Server** string; use a `db_datareader`-only account) · `CommandTimeoutSeconds` — target for `dbQuery` steps | blank → `503` at run start |
+| `Auth:<Env>:<authRef>` | `Kind` = `none` \| `static` \| `tokenEndpoint` \| `serviceHeader`, plus kind-specific keys (`Header`, `Value`, `Url`, `Method`, `BodyTemplate`, `TokenPath`, `ValuePath`, `Format`, `TtlSeconds`) | referenced but missing → `503` at run start |
+| `TestRuns:AllowedEnvironments` | environments where runs are permitted | `[ dev, preprod ]` |
+| `TestRuns:MaxBulkCount` / `TestRuns:MaxBulkConcurrency` | bulk `repeat` ceilings (`400` if exceeded) | `10` / `5` |
 | `Serilog:*` | sink / level configuration | Console, `Information` |
 
 CORS also exposes the `X-Correlation-ID` response header so the SPA can log it.
+
+`CompanyApis` / `SoapServices` / `CompanyDb` / `Auth` are keyed by logical environment
+(`Dev` / `Preprod` / `Production`); `production` never runs regardless. Secrets come from
+environment variables / user-secrets today
+(`Auth__Dev__<authRef>__Value`, `CompanyDb__Dev__ConnectionString`), Vault later at the **same
+key paths**. `appsettings.json` ships every environment's blocks **empty** (so every run start
+is `503` until filled); `appsettings.Development.json` leaves a blank skeleton for `Dev`.
 
 `MessageBrokers` is keyed by logical environment (`Dev` / `Preprod` / `Production`). Secrets
 come from environment variables / user-secrets today
@@ -141,6 +158,17 @@ list/topic/consumer-group endpoints → `503` when unconfigured, unknown broker/
 Unit: `GlobPattern.Matches*` (strict + loose), `QueueCategories` classification, and
 name-filter-before-paging on `ToPage`. Full-HTTP filtering against a live broker
 (RabbitMQ / Kafka Testcontainer) is still not automated — verify against `docker compose`.
+Test Runs — unit: `TemplateEngine`, `JsonPathEvaluator`, `AssertionEvaluator` (all six ops +
+coercion), `SqlReadGuard`, `SecretMasker`, `StepSchemaValidator`, and `TokenBroker` (static /
+`tokenEndpoint` TTL cache + refresh / `serviceHeader` every call / `none`). Integration
+(fake company gateways in test DI): `X-Environment` / `production` → 400, `/scenarios` seed of
+six + by-key + 404, profile CRUD + duplicate → 409 + per-environment isolation + stale
+`rowVersion` → 409, `POST /` → 202 then worker runs it (steps persisted in order, `extract` →
+`variables`), `poll` retries until ready (`attempts` counted) and times out → failed, a failed
+assertion skips the rest and fails the run, a configured secret never appears in a persisted
+step, unconfigured target family → 503, SSE emits `snapshot` → step events → `run-finished`,
+`/cancel` (running → cancelled, terminal → 409, unknown → 404), bulk `count=3` → parent + 3
+child iterations + summary, `count=11` → 400.
 
 ## Project layout
 
@@ -153,6 +181,7 @@ backend/
     PaymentOrderOps.Domain          entities + enums (no dependencies)
     PaymentOrderOps.Infrastructure  AppDbContext, EF config, migrations, seed
       Messaging/                     RabbitMQ management client + Kafka admin gateway + options
+      TestRuns/                      company-target options + gateways (HTTP / SOAP / SQL Server) + token broker
     PaymentOrderOps.Api             host + feature slices
       Infrastructure/Endpoints/     IEndpointModule + discovery / API-version wiring
       Features/<Feature>/V<n>/
@@ -256,6 +285,73 @@ Dead-letter classification is glob-based (`DeadLetterQueuePatterns` / `DeadLette
 message counts (`approxMessageCount: -1`) — use the topic detail endpoint. Replay / purge /
 message delete are intentionally **not** implemented this phase.
 
+## API — Test Runs
+
+Base: `/api/v1/test-runs` · **`X-Environment: dev | preprod` required** on every call except
+the SSE stream. `production` (or any environment outside `TestRuns:AllowedEnvironments`) →
+`400 ProblemDetails` ("Test koşumları production ortamında devre dışıdır."). A scenario step
+that references a company-target **family** with no configuration in that environment →
+`503` at start; a configured target that cannot be reached → the run **fails** (its failing
+step carries the reason). `502` is reserved for the same unreachable case surfaced
+synchronously.
+
+| Method | Route | Result |
+| --- | --- | --- |
+| `GET` | `/scenarios` | `200` — the six seeded scenarios (global, not environment-scoped) |
+| `GET` | `/scenarios/{idOrKey}` | `200` `ScenarioDetail` (steps + `bulk` limits for repeat-capable scenarios) · `404`. Accepts an id **or** a key |
+| `GET` | `/scenarios/{idOrKey}/profiles` | `200` — this environment's saved profiles |
+| `POST` | `/scenarios/{idOrKey}/profiles` | `{ name, values }` → `201` + `Location` · `400` · `404` · `409` (duplicate name) |
+| `PUT` | `/scenarios/{idOrKey}/profiles/{pid}` | `{ name, values, rowVersion? }` → `200` · `400` · `404` · `409`. `rowVersion` is optional — omit it for last-write-wins, send it back for a `409` on a stale write |
+| `DELETE` | `/scenarios/{idOrKey}/profiles/{pid}` | `204` · `404` |
+| `POST` | `/` | `{ scenarioId, profileId?, runParams, repeat?: { count, concurrency } }` → `202` + `Location(/api/v1/test-runs/{runId})` + `{ runId }` · `400` · `404` · `503`. Execution happens on the worker, never in the request |
+| `GET` | `/` | `?scenarioId` `?status` `?from` `?to` (ISO dates, `to` inclusive) → `200` `RunSummary[]` (bulk children excluded) |
+| `GET` | `/{runId}` | `200` `Run` (steps, variables, and for a bulk run `iterations` + `summary`) · `404` |
+| `GET` | `/{runId}/events?env=dev\|preprod` | `text/event-stream`. First a `snapshot` (the full `Run`), then `step-started` / `step-finished`, then `run-finished`, then the stream closes. `env` is a query parameter because a browser `EventSource` cannot send headers; the `X-Environment` header is honoured as a fallback |
+| `POST` | `/{runId}/cancel` | `202` (running or queued) · `409` (already terminal) · `404` |
+
+Response JSON matches the frontend `test-runs` contract (`camelCase`, lowercase enum strings).
+The bulk `summary` is `{ total, passed, failed, durationMs: { min, median, max }, orderNos }`.
+`triggeredBy` is the `X-User` request header, or `"anonymous"`.
+
+### Step schema (the `Steps` jsonb — a closed set)
+
+Common: `{ key, title, kind, extract?: { <var>: "<path>" }, expect?: Assertion }`. Kinds:
+`httpRequest` · `soapRequest` · `poll` (repeats a `read` until an `until` assertion or
+`timeoutMs`) · `dbQuery` (a single read-only T-SQL statement; `{{var}}` placeholders become
+`@p0`, `@p1`, … bound parameters) · `extract` (pull `map` values out of an earlier step's
+output) · `assert` · `delay`. `Assertion` = `{ path?|jsonPath?|xpath?|column?, op:
+equals|notEquals|contains|exists|gt|lt, value? }`. JSONPath support is a minimal in-box
+evaluator (`$.a.b[0].c` — no wildcards/filters); XML uses `System.Xml.XPath`. String fields
+are templated with `{{var}}` / `{{a.b}}`; a missing variable fails the step. Hosts are **never**
+templated — steps carry `companyApi:<name>` / `soap:<name>` references and the host comes from
+config only.
+
+### Auth (config-driven, per environment)
+
+Each company target may name an `authRef`; `ITokenBroker` resolves it before the step is sent:
+`none` (no header) · `static` (a fixed secret in a header) · `tokenEndpoint` (one call, token
+pulled from `TokenPath`, cached for `TtlSeconds`, formatted via `Format` with `{token}`) ·
+`serviceHeader` (a call on **every** request, value from `ValuePath`). `SecretMasker` redacts
+known sensitive headers (`Authorization`, `apikey`, `X-Auth-Token`, …), any configured `static`
+secret, and every token the broker resolves for that run — applied **before** a step's request
+/ response is persisted or logged.
+
+### Notes / assumptions
+
+- **Seed steps are placeholders.** The six scenarios are seeded with the exact keys / titles /
+  kinds the frontend renders, but their internals point at not-yet-configured targets
+  (`TestRunSeedSteps.Placeholder.cs`). QA replaces that one file when the real step tables land;
+  nothing else in the slice depends on its body.
+- **The SSE event bus is single-instance** (`InMemoryTestRunEventBus`, one in-memory replay
+  buffer per run). Behind more than one host, a client would only see events from the host it
+  connected to. `TestRunWorker` processes runs one at a time; a bulk run fans out internally
+  (`Parallel.ForEachAsync`, bounded by `repeat.concurrency`).
+- **The company DB is SQL Server** (`Microsoft.Data.SqlClient`), independent of the dashboard's
+  PostgreSQL. `dbQuery` runs read-only T-SQL only (`SqlReadGuard`: single statement, `SELECT`/
+  `WITH` only, no DML/DDL keywords) — give it a connection string for a `db_datareader`-only
+  account. This is a pragmatic allow-list, not a full parser; step-schema validation is the
+  first line of defence.
+
 ## Architecture decisions
 
 - **PostgreSQL, not SQL Server.** Native `jsonb` maps the `Headers` dictionary to a real,
@@ -263,7 +359,9 @@ message delete are intentionally **not** implemented this phase.
   (no extra `rowversion` column or trigger); the container is tiny and licence-free for an
   internal tool, which also keeps the Testcontainers test loop fast. The provider is
   reached only through `ConnectionStrings:Default`, so swapping is a config + provider
-  change, not a code change.
+  change, not a code change. The one `Microsoft.Data.SqlClient` dependency is unrelated: it
+  is the **company** database that Test Runs' `dbQuery` reads (external, SQL Server), never
+  the dashboard's own store.
 - **Vertical slice, few projects, no MediatR.** Each feature version owns its endpoints,
   contracts, validation and mapping under `Features/<Feature>/V<n>/`. Every operation is a
   folder (`CreateCheck/`, `ReplaceCheck/`, …) holding just that endpoint, its request record

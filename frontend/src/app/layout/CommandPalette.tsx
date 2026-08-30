@@ -6,32 +6,39 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Moon, Server, Sun, type LucideIcon } from 'lucide-react';
+import { Home, Languages, Server, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import { useAppStore } from '@/app/store';
+import { THEMES, useAppStore } from '@/app/store';
 import { cn } from '@/lib/cn';
 import { MODULES } from '@/lib/constants';
-import { APP_ENVIRONMENTS, ENV_LABELS } from '@/services/config';
+import { LOCALES } from '@/i18n/config';
+import { APP_ENVIRONMENTS } from '@/services/config';
+
+import { THEME_META } from './themeMeta';
+
+type CommandGroup = 'pages' | 'actions';
 
 interface Command {
   id: string;
   label: string;
-  group: 'Sayfalar' | 'Eylemler';
+  group: CommandGroup;
   icon: LucideIcon;
   keywords: string;
   hint?: string | undefined;
   run: () => void;
 }
 
-const norm = (s: string) => s.toLocaleLowerCase('tr');
-
 export function CommandPalette() {
+  const { t, i18n } = useTranslation(['common', 'nav']);
   const open = useAppStore((s) => s.commandOpen);
   const setOpen = useAppStore((s) => s.setCommandOpen);
   const theme = useAppStore((s) => s.theme);
-  const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const setTheme = useAppStore((s) => s.setTheme);
   const environment = useAppStore((s) => s.environment);
   const setEnvironment = useAppStore((s) => s.setEnvironment);
+  const language = useAppStore((s) => s.language);
+  const setLanguage = useAppStore((s) => s.setLanguage);
   const navigate = useNavigate();
 
   const [query, setQuery] = useState('');
@@ -68,67 +75,80 @@ export function CommandPalette() {
     const pages: Command[] = [
       {
         id: 'page-home',
-        label: 'Genel Bakış',
-        group: 'Sayfalar',
+        label: t('common:sidebar.overview'),
+        group: 'pages',
         icon: Home,
-        keywords: 'home anasayfa overview başlangıç',
+        keywords: t('common:commandPalette.homeKeywords'),
         run: () => go('/'),
       },
       ...MODULES.flatMap<Command>((mod) => [
         {
           id: `page-${mod.id}`,
-          label: mod.label,
-          group: 'Sayfalar',
+          label: t(`nav:modules.${mod.id}.label`),
+          group: 'pages',
           icon: mod.icon,
-          keywords: `${mod.path} ${mod.description}`,
+          keywords: `${mod.path} ${t(`nav:modules.${mod.id}.description`)}`,
           run: () => go(`/${mod.path}`),
         },
         ...(mod.children ?? []).map<Command>((sub) => ({
           id: `page-${mod.id}-${sub.id}`,
-          label: sub.label,
-          group: 'Sayfalar',
+          label: t(`nav:subpages.${sub.id}.label`),
+          group: 'pages',
           icon: mod.icon,
-          keywords: `${mod.label} ${sub.path} ${sub.description}`,
-          hint: mod.label,
+          keywords: `${t(`nav:modules.${mod.id}.label`)} ${sub.path} ${t(`nav:subpages.${sub.id}.description`)}`,
+          hint: t(`nav:modules.${mod.id}.label`),
           run: () => go(`/${mod.path}/${sub.path}`),
         })),
       ]),
     ];
 
     const actions: Command[] = [
-      {
-        id: 'action-theme',
-        label: theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç',
-        group: 'Eylemler',
-        icon: theme === 'dark' ? Sun : Moon,
-        keywords: 'tema theme dark light açık koyu görünüm',
+      ...THEMES.filter((name) => name !== theme).map<Command>((name) => ({
+        id: `action-theme-${name}`,
+        label: t('common:commandPalette.themeItem', { name: t(`common:theme.names.${name}`) }),
+        group: 'actions',
+        icon: THEME_META[name].icon,
+        keywords: `${t('common:commandPalette.themeKeywords')} ${name} ${t(`common:theme.names.${name}`)}`,
         run: () => {
-          toggleTheme();
+          setTheme(name);
           setOpen(false);
         },
-      },
+      })),
       ...APP_ENVIRONMENTS.map<Command>((env) => ({
         id: `action-env-${env}`,
-        label: `Ortam: ${ENV_LABELS[env]}`,
-        group: 'Eylemler',
+        label: t('common:commandPalette.envItem', { name: t(`common:env.labels.${env}`) }),
+        group: 'actions',
         icon: Server,
-        keywords: `ortam environment ${env}`,
-        hint: env === environment ? 'aktif' : undefined,
+        keywords: `${t('common:commandPalette.envKeywords')} ${env}`,
+        hint: env === environment ? t('common:commandPalette.active') : undefined,
         run: () => {
           setEnvironment(env);
+          setOpen(false);
+        },
+      })),
+      ...LOCALES.filter((code) => code !== language).map<Command>((code) => ({
+        id: `action-locale-${code}`,
+        label: t('common:commandPalette.localeItem', { name: t(`common:locale.names.${code}`) }),
+        group: 'actions',
+        icon: Languages,
+        keywords: `${t('common:commandPalette.localeKeywords')} ${code}`,
+        run: () => {
+          setLanguage(code);
           setOpen(false);
         },
       })),
     ];
 
     return [...pages, ...actions];
-  }, [theme, environment, navigate, toggleTheme, setEnvironment, setOpen]);
+  }, [t, theme, environment, language, navigate, setTheme, setEnvironment, setLanguage, setOpen]);
 
   const filtered = useMemo(() => {
+    const lang = i18n.language;
+    const norm = (s: string) => s.toLocaleLowerCase(lang);
     const q = norm(query.trim());
     if (!q) return commands;
     return commands.filter((c) => norm(`${c.label} ${c.keywords}`).includes(q));
-  }, [commands, query]);
+  }, [commands, query, i18n.language]);
 
   const activeSafe = filtered.length ? Math.min(activeIndex, filtered.length - 1) : 0;
 
@@ -158,7 +178,7 @@ export function CommandPalette() {
     >
       <div
         role="dialog"
-        aria-label="Komut paleti"
+        aria-label={t('common:commandPalette.dialogAria')}
         className="w-full max-w-lg overflow-hidden rounded-lg border border-border-strong bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -170,13 +190,15 @@ export function CommandPalette() {
             setActiveIndex(0);
           }}
           onKeyDown={onInputKey}
-          placeholder="Sayfa ara veya komut çalıştır…"
+          placeholder={t('common:commandPalette.placeholder')}
           className="w-full border-b border-border bg-transparent px-4 py-3 text-sm text-fg placeholder:text-fg-subtle focus:outline-none"
         />
 
         <ul className="max-h-80 overflow-y-auto p-1.5">
           {filtered.length === 0 && (
-            <li className="px-2.5 py-6 text-center text-xs text-fg-subtle">Sonuç yok</li>
+            <li className="px-2.5 py-6 text-center text-xs text-fg-subtle">
+              {t('common:commandPalette.empty')}
+            </li>
           )}
           {filtered.map((cmd, i) => {
             const Icon = cmd.icon;
@@ -186,7 +208,7 @@ export function CommandPalette() {
               <li key={cmd.id}>
                 {cmd.group !== prevGroup && (
                   <div className="px-2.5 pb-1 pt-2 text-[10px] uppercase tracking-wide text-fg-subtle">
-                    {cmd.group}
+                    {t(`common:commandPalette.groups.${cmd.group}`)}
                   </div>
                 )}
                 <button
@@ -208,9 +230,9 @@ export function CommandPalette() {
         </ul>
 
         <div className="flex items-center gap-3 border-t border-border px-4 py-2 text-[11px] text-fg-subtle">
-          <span className="tnum">↑↓</span> gez
-          <span className="tnum">↵</span> seç
-          <span className="tnum">esc</span> kapat
+          <span className="tnum">↑↓</span> {t('common:commandPalette.hints.navigate')}
+          <span className="tnum">↵</span> {t('common:commandPalette.hints.select')}
+          <span className="tnum">esc</span> {t('common:commandPalette.hints.close')}
         </div>
       </div>
     </div>

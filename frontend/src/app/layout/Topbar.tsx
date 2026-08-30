@@ -1,12 +1,15 @@
 import { Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { useAppStore } from '@/app/store';
 
 import { Breadcrumbs } from './Breadcrumbs';
 import { EnvSwitcher } from './EnvSwitcher';
+import { LocaleToggle } from './LocaleToggle';
 import { ThemeToggle } from './ThemeToggle';
 
 export function Topbar() {
+  const { t } = useTranslation('common');
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
 
   return (
@@ -21,7 +24,7 @@ export function Topbar() {
         className="flex h-9 w-full items-center gap-2.5 rounded-lg border border-border bg-surface px-3 text-sm text-fg-subtle transition-colors hover:border-border-strong hover:text-fg-muted"
       >
         <Search size={15} className="shrink-0" />
-        <span className="flex-1 truncate text-left">Ara veya komut çalıştır…</span>
+        <span className="flex-1 truncate text-left">{t('topbar.searchPlaceholder')}</span>
         <kbd className="tnum shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-fg-subtle">
           ⌘K
         </kbd>
@@ -29,6 +32,7 @@ export function Topbar() {
 
       <div className="flex items-center justify-end gap-2">
         <EnvSwitcher />
+        <LocaleToggle />
         <ThemeToggle />
       </div>
     </header>

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { useAppStore } from '@/app/store';
+import { THEME_COLOR_SCHEME, useAppStore } from '@/app/store';
 
 export function useApplyTheme(): void {
   const theme = useAppStore((s) => s.theme);
@@ -8,6 +8,6 @@ export function useApplyTheme(): void {
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = theme;
-    root.style.colorScheme = theme;
+    root.style.colorScheme = THEME_COLOR_SCHEME[theme];
   }, [theme]);
 }

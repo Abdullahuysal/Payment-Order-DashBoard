@@ -6,127 +6,73 @@ import {
   PackageSearch,
   ScrollText,
   TriangleAlert,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 
 export type ModuleId =
-  'health' | 'test-runs' | 'test-data' | 'orders' | 'queues' | 'errors' | 'logs';
+  'health' | 'test-runs' | 'test-data' | 'orders' | 'queues' | 'errors' | 'logs' | 'dev-tools';
+
+export type TestRunScenarioId =
+  | 'order-create'
+  | 'order-bulk'
+  | 'retail-invoice'
+  | 'retail-return-invoice'
+  | 'retail-shipment-advance'
+  | 'merchant-shipment-advance';
+
+export type DevToolPageId = 'json' | 'xml' | 'list' | 'sql-list';
+
+export type SubPageId = TestRunScenarioId | DevToolPageId;
 
 export interface SubPageDef {
-  id: string;
+  id: SubPageId;
   path: string;
-  label: string;
-  description: string;
 }
 
 export interface ModuleDef {
   id: ModuleId;
   path: string;
-  label: string;
-  description: string;
   icon: LucideIcon;
   implemented: boolean;
   children?: readonly SubPageDef[];
 }
 
 export const TEST_RUN_SCENARIOS: readonly SubPageDef[] = [
-  {
-    id: 'order-create',
-    path: 'order-create',
-    label: 'Sipariş Oluşturma',
-    description: 'Tek bir siparişi uçtan uca oluşturur ve sistemde düştüğünü doğrular.',
-  },
-  {
-    id: 'order-bulk',
-    path: 'order-bulk',
-    label: 'Toplu Sipariş Oluşturma',
-    description: 'Aynı anda çok sayıda sipariş üretir (yük / kapsam testi).',
-  },
-  {
-    id: 'retail-invoice',
-    path: 'retail-invoice',
-    label: 'Retail Fatura Oluşturma',
-    description: 'Boyner (retail) ürünleri için satış faturası kesme akışı.',
-  },
-  {
-    id: 'retail-return-invoice',
-    path: 'retail-return-invoice',
-    label: 'Retail İade Faturası Oluşturma',
-    description: 'Boyner (retail) ürünleri için iade faturası oluşturma akışı.',
-  },
-  {
-    id: 'retail-shipment-advance',
-    path: 'retail-shipment-advance',
-    label: 'Retail Kargo Statüsü İlerletme',
-    description: 'Retail siparişin kargo statüsünü hedef adıma kadar ilerletir.',
-  },
-  {
-    id: 'merchant-shipment-advance',
-    path: 'merchant-shipment-advance',
-    label: 'Merchant Kargo Statüsü İlerletme',
-    description: '3. parti (merchant) satıcı siparişinin kargo statüsünü ilerletir.',
-  },
+  { id: 'order-create', path: 'order-create' },
+  { id: 'order-bulk', path: 'order-bulk' },
+  { id: 'retail-invoice', path: 'retail-invoice' },
+  { id: 'retail-return-invoice', path: 'retail-return-invoice' },
+  { id: 'retail-shipment-advance', path: 'retail-shipment-advance' },
+  { id: 'merchant-shipment-advance', path: 'merchant-shipment-advance' },
+] as const;
+
+export const DEV_TOOL_PAGES: readonly SubPageDef[] = [
+  { id: 'json', path: 'json' },
+  { id: 'xml', path: 'xml' },
+  { id: 'list', path: 'list' },
+  { id: 'sql-list', path: 'sql-list' },
 ] as const;
 
 export const MODULES: readonly ModuleDef[] = [
-  {
-    id: 'health',
-    path: 'health',
-    label: 'Servis Sağlığı',
-    description: 'Uygulama alive endpoint’lerini yoklar; 200 → ayakta.',
-    icon: Activity,
-    implemented: true,
-  },
+  { id: 'health', path: 'health', icon: Activity, implemented: true },
   {
     id: 'test-runs',
     path: 'test-runs',
-    label: 'Test Koşumları',
-    description:
-      'Uçtan uca test senaryolarını seçili ortama karşı çalıştırır, adım adım pass/fail gösterir.',
     icon: FlaskConical,
     implemented: true,
     children: TEST_RUN_SCENARIOS,
   },
+  { id: 'test-data', path: 'test-data', icon: DatabaseZap, implemented: false },
+  { id: 'orders', path: 'orders', icon: PackageSearch, implemented: true },
+  { id: 'queues', path: 'queues', icon: Inbox, implemented: true },
+  { id: 'errors', path: 'errors', icon: TriangleAlert, implemented: false },
+  { id: 'logs', path: 'logs', icon: ScrollText, implemented: false },
   {
-    id: 'test-data',
-    path: 'test-data',
-    label: 'Test Verisi Üretici',
-    description: 'Test müşterisi, sepet, sipariş ve kupon üretir; sonrasında temizler.',
-    icon: DatabaseZap,
-    implemented: false,
-  },
-  {
-    id: 'orders',
-    path: 'orders',
-    label: 'Sipariş Kontrol',
-    description: 'DB üzerinde sipariş durumu sorgular (read-only).',
-    icon: PackageSearch,
-    implemented: false,
-  },
-  {
-    id: 'queues',
-    path: 'queues',
-    label: 'Mesaj Kuyrukları & DLQ',
-    description:
-      'RabbitMQ/Kafka kuyruk ve topic’leri, consumer lag, DLQ ve uyarılar; mesaj önizleme (salt-okunur).',
-    icon: Inbox,
+    id: 'dev-tools',
+    path: 'dev-tools',
+    icon: Wrench,
     implemented: true,
-  },
-  {
-    id: 'errors',
-    path: 'errors',
-    label: 'Hata Panosu',
-    description:
-      'Son dönemdeki hata imzaları, frekansı ve etkilenen siparişler; tek tık AI açıklaması.',
-    icon: TriangleAlert,
-    implemented: false,
-  },
-  {
-    id: 'logs',
-    path: 'logs',
-    label: 'Log & AI',
-    description: 'Elasticsearch log araması + sipariş için AI “ne oldu” yorumu.',
-    icon: ScrollText,
-    implemented: false,
+    children: DEV_TOOL_PAGES,
   },
 ] as const;

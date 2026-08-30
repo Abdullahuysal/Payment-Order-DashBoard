@@ -7,10 +7,23 @@
     <title>Payment &amp; Order Ops</title>
     <script>
       try {
+        var SCHEMES = {
+          dark: 'dark',
+          midnight: 'dark',
+          grape: 'dark',
+          ember: 'dark',
+          forest: 'dark',
+          light: 'light',
+          sage: 'light',
+          sepia: 'light',
+          blush: 'light',
+          lavender: 'light',
+        };
         var persisted = JSON.parse(localStorage.getItem('boyner-ops-ui') || '{}');
-        var theme = persisted && persisted.state && persisted.state.theme === 'light' ? 'light' : 'dark';
+        var stored = persisted && persisted.state && persisted.state.theme;
+        var theme = Object.prototype.hasOwnProperty.call(SCHEMES, stored) ? stored : 'dark';
         document.documentElement.dataset.theme = theme;
-        document.documentElement.style.colorScheme = theme;
+        document.documentElement.style.colorScheme = SCHEMES[theme];
       } catch (e) {
         document.documentElement.dataset.theme = 'dark';
       }

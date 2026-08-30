@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_DEFAULT_ENV?: 'dev' | 'preprod' | 'production';
   readonly VITE_HTTP_TIMEOUT_MS?: string;
   readonly VITE_TESTRUNS_MOCK?: string;
+  readonly VITE_ORDERS_MOCK?: string;
+  readonly VITE_DEVTOOLS_MOCK?: string;
 }
 
 interface ImportMeta {

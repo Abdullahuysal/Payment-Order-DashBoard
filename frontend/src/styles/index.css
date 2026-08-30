@@ -55,6 +55,182 @@
     --color-accent-logs: #0284c7;
   }
 
+  :root[data-theme='midnight'] {
+    --color-bg: #0f172a;
+    --color-surface: #1b2336;
+    --color-surface-2: #253046;
+    --color-border: #334155;
+    --color-border-strong: #475569;
+
+    --color-fg: #f8fafc;
+    --color-fg-muted: #94a3b8;
+    --color-fg-subtle: #64748b;
+
+    --color-primary: #f8fafc;
+    --color-primary-fg: #0f172a;
+
+    --color-status-up: #22c55e;
+    --color-status-degraded: #f59e0b;
+    --color-status-down: #f87171;
+    --color-status-unknown: #64748b;
+
+    --color-accent-logs: #38bdf8;
+  }
+
+  :root[data-theme='grape'] {
+    --color-bg: #1a1626;
+    --color-surface: #241d33;
+    --color-surface-2: #2f2743;
+    --color-border: #3b3155;
+    --color-border-strong: #4c4070;
+
+    --color-fg: #f4f1fb;
+    --color-fg-muted: #a99fc4;
+    --color-fg-subtle: #7d7397;
+
+    --color-primary: #c4b5fd;
+    --color-primary-fg: #1a1626;
+
+    --color-status-up: #34d399;
+    --color-status-degraded: #fbbf24;
+    --color-status-down: #fb7185;
+    --color-status-unknown: #7d7397;
+
+    --color-accent-logs: #22d3ee;
+  }
+
+  :root[data-theme='sage'] {
+    --color-bg: #f0f5f1;
+    --color-surface: #f9fbf9;
+    --color-surface-2: #e3ede5;
+    --color-border: #cfe0d3;
+    --color-border-strong: #b3ccb9;
+
+    --color-fg: #1c2b22;
+    --color-fg-muted: #4a5d51;
+    --color-fg-subtle: #6f8377;
+
+    --color-primary: #1c2b22;
+    --color-primary-fg: #f9fbf9;
+
+    --color-status-up: #15803d;
+    --color-status-degraded: #b45309;
+    --color-status-down: #b91c1c;
+    --color-status-unknown: #8a9c8f;
+
+    --color-accent-logs: #0369a1;
+  }
+
+  :root[data-theme='ember'] {
+    --color-bg: #1a1512;
+    --color-surface: #241d18;
+    --color-surface-2: #302620;
+    --color-border: #3d3128;
+    --color-border-strong: #4f4033;
+
+    --color-fg: #faf6f0;
+    --color-fg-muted: #b8a898;
+    --color-fg-subtle: #8a7a68;
+
+    --color-primary: #fb923c;
+    --color-primary-fg: #1a1512;
+
+    --color-status-up: #4ade80;
+    --color-status-degraded: #fbbf24;
+    --color-status-down: #fb7185;
+    --color-status-unknown: #8a7a68;
+
+    --color-accent-logs: #fdba74;
+  }
+
+  :root[data-theme='forest'] {
+    --color-bg: #0c1611;
+    --color-surface: #12211a;
+    --color-surface-2: #1a2e24;
+    --color-border: #24402f;
+    --color-border-strong: #345c43;
+
+    --color-fg: #eefaf2;
+    --color-fg-muted: #9dc3ad;
+    --color-fg-subtle: #6f9580;
+
+    --color-primary: #34d399;
+    --color-primary-fg: #0c1611;
+
+    --color-status-up: #4ade80;
+    --color-status-degraded: #fbbf24;
+    --color-status-down: #fb7185;
+    --color-status-unknown: #6f9580;
+
+    --color-accent-logs: #2dd4bf;
+  }
+
+  :root[data-theme='sepia'] {
+    --color-bg: #faf4e8;
+    --color-surface: #fffaf0;
+    --color-surface-2: #f2e8d5;
+    --color-border: #e4d5bd;
+    --color-border-strong: #d0bb98;
+
+    --color-fg: #43382a;
+    --color-fg-muted: #6b5d49;
+    --color-fg-subtle: #847559;
+
+    --color-primary: #43382a;
+    --color-primary-fg: #fffaf0;
+
+    --color-status-up: #15803d;
+    --color-status-degraded: #b45309;
+    --color-status-down: #b91c1c;
+    --color-status-unknown: #a1968a;
+
+    --color-accent-logs: #0369a1;
+  }
+
+  :root[data-theme='blush'] {
+    --color-bg: #fdf2f4;
+    --color-surface: #fff7f9;
+    --color-surface-2: #f9e8ec;
+    --color-border: #f2d5dc;
+    --color-border-strong: #e5bcc7;
+
+    --color-fg: #3d2930;
+    --color-fg-muted: #6e4f59;
+    --color-fg-subtle: #8f6b76;
+
+    --color-primary: #be123c;
+    --color-primary-fg: #fff7f9;
+
+    --color-status-up: #15803d;
+    --color-status-degraded: #b45309;
+    --color-status-down: #be123c;
+    --color-status-unknown: #a98a92;
+
+    --color-accent-logs: #a21caf;
+  }
+
+  :root[data-theme='lavender'] {
+    --color-bg: #f6f4fd;
+    --color-surface: #fbfaff;
+    --color-surface-2: #eeeafb;
+    --color-border: #e0d9f5;
+    --color-border-strong: #cabfec;
+
+    --color-fg: #2c2540;
+    --color-fg-muted: #574d73;
+    --color-fg-subtle: #7a6f96;
+
+    --color-primary: #7c3aed;
+    --color-primary-fg: #fbfaff;
+
+    --color-status-up: #15803d;
+    --color-status-degraded: #b45309;
+    --color-status-down: #be123c;
+    --color-status-unknown: #9a8fb8;
+
+    --color-accent-logs: #6d28d9;
+  }
+
   * {
     border-color: var(--color-border);
   }

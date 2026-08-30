@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PaymentOrderOps.Domain.Messaging;
 using PaymentOrderOps.Domain.ServiceHealth;
+using PaymentOrderOps.Domain.TestRuns;
 
 namespace PaymentOrderOps.Infrastructure.Persistence;
 
@@ -17,6 +18,14 @@ public sealed class AppDbContext : DbContext
     public DbSet<ServiceHealthCheck> ServiceHealthChecks => Set<ServiceHealthCheck>();
 
     public DbSet<QueueScopeProfile> QueueScopeProfiles => Set<QueueScopeProfile>();
+
+    public DbSet<TestScenario> TestScenarios => Set<TestScenario>();
+
+    public DbSet<ScenarioProfile> ScenarioProfiles => Set<ScenarioProfile>();
+
+    public DbSet<TestRun> TestRuns => Set<TestRun>();
+
+    public DbSet<TestRunStep> TestRunSteps => Set<TestRunStep>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -60,6 +69,44 @@ public sealed class AppDbContext : DbContext
             if (entry.State is EntityState.Added or EntityState.Modified)
             {
                 entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<TestScenario>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Property(e => e.CreatedAtUtc).CurrentValue = now;
+                    entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+                    break;
+                case EntityState.Modified:
+                    entry.Property(e => e.CreatedAtUtc).IsModified = false;
+                    entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+                    break;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<ScenarioProfile>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Property(e => e.CreatedAtUtc).CurrentValue = now;
+                    entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+                    break;
+                case EntityState.Modified:
+                    entry.Property(e => e.CreatedAtUtc).IsModified = false;
+                    entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+                    break;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<TestRun>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(e => e.CreatedAtUtc).CurrentValue = now;
             }
         }
     }

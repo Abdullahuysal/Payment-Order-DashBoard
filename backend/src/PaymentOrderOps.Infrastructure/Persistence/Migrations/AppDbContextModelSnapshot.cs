@@ -440,6 +440,374 @@ namespace PaymentOrderOps.Infrastructure.Persistence.Migrations
                             Url = "https://notification.boyner.internal/health"
                         });
                 });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.ScenarioProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Dev");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("ScenarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Values")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Values");
+
+                    b.Property<uint>("Xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScenarioId", "Environment", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ScenarioProfiles_ScenarioId_Environment_NormalizedName");
+
+                    b.ToTable("ScenarioProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.TestRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Dev");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("FinishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ParentRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("RepeatConcurrency")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RepeatCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RunParams")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("RunParams");
+
+                    b.Property<Guid>("ScenarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScenarioKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Summary");
+
+                    b.Property<string>("TriggeredBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Variables")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Variables");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc")
+                        .HasDatabaseName("IX_TestRuns_CreatedAtUtc");
+
+                    b.HasIndex("ParentRunId")
+                        .HasDatabaseName("IX_TestRuns_ParentRunId");
+
+                    b.HasIndex("ScenarioId")
+                        .HasDatabaseName("IX_TestRuns_ScenarioId");
+
+                    b.HasIndex("Environment", "Status")
+                        .HasDatabaseName("IX_TestRuns_Environment_Status");
+
+                    b.ToTable("TestRuns", (string)null);
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.TestRunStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<long?>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("FinishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RequestJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("RequestJson");
+
+                    b.Property<string>("ResponseJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("ResponseJson");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("TestRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TestRunId", "Order")
+                        .HasDatabaseName("IX_TestRunSteps_TestRunId_Order");
+
+                    b.ToTable("TestRunSteps", (string)null);
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.TestScenario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("Inputs")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Inputs");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("Steps")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Steps");
+
+                    b.Property<bool>("SupportsRepeat")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TestScenarios_Key");
+
+                    b.ToTable("TestScenarios", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("01991000-0000-7000-8000-000000000001"),
+                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Tek bir siparişi uçtan uca oluşturur ve sistemde düştüğünü doğrular.",
+                            Inputs = "[{\"name\":\"customerType\",\"label\":\"M\\u00FC\\u015Fteri\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"new\",\"label\":\"Yeni test m\\u00FC\\u015Fterisi\"},{\"value\":\"existing\",\"label\":\"Var olan m\\u00FC\\u015Fteri\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"new\"},{\"name\":\"customerId\",\"label\":\"M\\u00FC\\u015Fteri no\",\"type\":\"string\",\"required\":false,\"options\":null,\"placeholder\":\"1002453\",\"help\":\"Yaln\\u0131zca \\u201CVar olan m\\u00FC\\u015Fteri\\u201D se\\u00E7ildi\\u011Finde kullan\\u0131l\\u0131r.\",\"defaultValue\":null},{\"name\":\"productSku\",\"label\":\"\\u00DCr\\u00FCn SKU\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":\"BOY-1234567\",\"help\":null,\"defaultValue\":null},{\"name\":\"quantity\",\"label\":\"Adet\",\"type\":\"number\",\"required\":true,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":1},{\"name\":\"paymentMethod\",\"label\":\"\\u00D6deme y\\u00F6ntemi\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"creditCard\",\"label\":\"Kredi kart\\u0131 (mock POS)\"},{\"value\":\"wallet\",\"label\":\"C\\u00FCzdan\"},{\"value\":\"transfer\",\"label\":\"Havale\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"creditCard\"},{\"name\":\"couponCode\",\"label\":\"Kupon kodu\",\"type\":\"string\",\"required\":false,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":null},{\"name\":\"note\",\"label\":\"Not\",\"type\":\"string\",\"required\":false,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":null}]",
+                            Key = "order-create",
+                            Kind = "Generic",
+                            Name = "Sipariş Oluşturma",
+                            Steps = "[{\"kind\":\"dbQuery\",\"query\":\"SELECT 1 AS ready\",\"key\":\"prepare-customer\",\"title\":\"Test m\\u00FC\\u015Fterisi ve sepet haz\\u0131rlan\\u0131r\",\"extract\":null,\"expect\":null},{\"kind\":\"httpRequest\",\"request\":{\"method\":\"POST\",\"endpoint\":\"companyApi:orders\",\"path\":\"/internal/cart/items\",\"query\":null,\"headers\":null,\"body\":null},\"key\":\"add-to-cart\",\"title\":\"\\u00DCr\\u00FCn sepete eklenir\",\"extract\":null,\"expect\":null},{\"kind\":\"httpRequest\",\"request\":{\"method\":\"POST\",\"endpoint\":\"companyApi:orders\",\"path\":\"/internal/checkout\",\"query\":null,\"headers\":null,\"body\":null},\"key\":\"checkout\",\"title\":\"\\u00D6deme (mock POS) ile sipari\\u015F olu\\u015Fturulur\",\"extract\":null,\"expect\":null},{\"kind\":\"poll\",\"read\":{\"http\":{\"method\":\"GET\",\"endpoint\":\"companyApi:orders\",\"path\":\"/internal/orders/status\",\"query\":null,\"headers\":null,\"body\":null},\"soap\":null},\"until\":{\"path\":null,\"jsonPath\":\"$.ready\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true},\"intervalMs\":1000,\"timeoutMs\":15000,\"key\":\"verify-orchestrator\",\"title\":\"Order-orchestrator\\u0027da sipari\\u015Fin d\\u00FC\\u015Ft\\u00FC\\u011F\\u00FC do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":null},{\"kind\":\"extract\",\"from\":\"checkout\",\"map\":{\"orderNo\":\"$.orderNo\",\"status\":\"$.status\"},\"key\":\"extract-result\",\"title\":\"Sipari\\u015F no ve durum \\u00E7\\u0131kt\\u0131 olarak al\\u0131n\\u0131r\",\"extract\":null,\"expect\":null}]",
+                            SupportsRepeat = false,
+                            UpdatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = new Guid("01991000-0000-7000-8000-000000000002"),
+                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Aynı anda çok sayıda sipariş üretir (yük / kapsam testi).",
+                            Inputs = "[{\"name\":\"productSku\",\"label\":\"\\u00DCr\\u00FCn SKU\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":\"BOY-1234567\",\"help\":null,\"defaultValue\":null},{\"name\":\"quantityPerOrder\",\"label\":\"Sipari\\u015F ba\\u015F\\u0131na adet\",\"type\":\"number\",\"required\":true,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":1},{\"name\":\"customerPool\",\"label\":\"M\\u00FC\\u015Fteri havuzu\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"shared\",\"label\":\"Tek m\\u00FC\\u015Fteri (payla\\u015F\\u0131ml\\u0131)\"},{\"value\":\"unique\",\"label\":\"Her sipari\\u015F i\\u00E7in ayr\\u0131 m\\u00FC\\u015Fteri\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"shared\"},{\"name\":\"paymentMethod\",\"label\":\"\\u00D6deme y\\u00F6ntemi\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"creditCard\",\"label\":\"Kredi kart\\u0131 (mock POS)\"},{\"value\":\"wallet\",\"label\":\"C\\u00FCzdan\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"creditCard\"}]",
+                            Key = "order-bulk",
+                            Kind = "Generic",
+                            Name = "Toplu Sipariş Oluşturma",
+                            Steps = "[{\"kind\":\"dbQuery\",\"query\":\"SELECT 1 AS ready\",\"key\":\"prepare-pool\",\"title\":\"M\\u00FC\\u015Fteri havuzu ve \\u00FCr\\u00FCn profili haz\\u0131rlan\\u0131r\",\"extract\":null,\"expect\":null},{\"kind\":\"httpRequest\",\"request\":{\"method\":\"POST\",\"endpoint\":\"companyApi:orders\",\"path\":\"/internal/checkout\",\"query\":null,\"headers\":null,\"body\":null},\"key\":\"spawn-orders\",\"title\":\"N adet sipari\\u015F paralel olu\\u015Fturulur\",\"extract\":null,\"expect\":null},{\"kind\":\"extract\",\"from\":\"spawn-orders\",\"map\":{\"orderNo\":\"$.orderNo\"},\"key\":\"collect-results\",\"title\":\"Ba\\u015Far\\u0131l\\u0131 / ba\\u015Far\\u0131s\\u0131z da\\u011F\\u0131l\\u0131m\\u0131 toplan\\u0131r\",\"extract\":null,\"expect\":null},{\"kind\":\"assert\",\"key\":\"assert-distribution\",\"title\":\"Da\\u011F\\u0131l\\u0131m ve s\\u00FCre e\\u015Fikleri do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":{\"path\":null,\"jsonPath\":\"$.ok\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true}}]",
+                            SupportsRepeat = true,
+                            UpdatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = new Guid("01991000-0000-7000-8000-000000000003"),
+                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Boyner (retail) ürünleri için satış faturası kesme akışı.",
+                            Inputs = "[{\"name\":\"orderNo\",\"label\":\"Sipari\\u015F no\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":\"SO-40011234\",\"help\":null,\"defaultValue\":null},{\"name\":\"invoiceType\",\"label\":\"Fatura tipi\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"sales\",\"label\":\"Sat\\u0131\\u015F faturas\\u0131\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"sales\"},{\"name\":\"sendEDocument\",\"label\":\"e-Belge g\\u00F6nderilsin\",\"type\":\"boolean\",\"required\":false,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":true}]",
+                            Key = "retail-invoice",
+                            Kind = "Retail",
+                            Name = "Retail Fatura Oluşturma",
+                            Steps = "[{\"kind\":\"dbQuery\",\"query\":\"SELECT 1 AS ready\",\"key\":\"load-order\",\"title\":\"Faturalanacak retail sipari\\u015Fi y\\u00FCklenir\",\"extract\":null,\"expect\":null},{\"kind\":\"soapRequest\",\"request\":{\"endpoint\":\"soap:invoices\",\"soapAction\":null,\"body\":\"\\u003Csoapenv:Envelope xmlns:soapenv=\\u0022http://schemas.xmlsoap.org/soap/envelope/\\u0022\\u003E\\u003Csoapenv:Body/\\u003E\\u003C/soapenv:Envelope\\u003E\"},\"key\":\"issue-invoice\",\"title\":\"Sat\\u0131\\u015F faturas\\u0131 kesme ak\\u0131\\u015F\\u0131 tetiklenir\",\"extract\":null,\"expect\":null},{\"kind\":\"poll\",\"read\":{\"http\":{\"method\":\"GET\",\"endpoint\":\"companyApi:invoices\",\"path\":\"/internal/edocument/status\",\"query\":null,\"headers\":null,\"body\":null},\"soap\":null},\"until\":{\"path\":null,\"jsonPath\":\"$.ready\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true},\"intervalMs\":1000,\"timeoutMs\":15000,\"key\":\"poll-edocument\",\"title\":\"e-Belge durumu beklenir\",\"extract\":null,\"expect\":null},{\"kind\":\"assert\",\"key\":\"assert-invoice\",\"title\":\"Fatura no ve e-belge durumu do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":{\"path\":null,\"jsonPath\":\"$.ok\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true}}]",
+                            SupportsRepeat = false,
+                            UpdatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = new Guid("01991000-0000-7000-8000-000000000004"),
+                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Boyner (retail) ürünleri için iade faturası oluşturma akışı.",
+                            Inputs = "[{\"name\":\"orderNo\",\"label\":\"Sipari\\u015F no\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":\"SO-40011234\",\"help\":null,\"defaultValue\":null},{\"name\":\"returnItems\",\"label\":\"\\u0130ade kalemleri\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":\"BOY-1234567:1, BOY-7654321:2\",\"help\":\"SKU:adet \\u00E7iftleri, virg\\u00FClle ayr\\u0131l\\u0131r.\",\"defaultValue\":null},{\"name\":\"reason\",\"label\":\"\\u0130ade nedeni\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"customer\",\"label\":\"M\\u00FC\\u015Fteri vazge\\u00E7ti\"},{\"value\":\"defect\",\"label\":\"\\u00DCr\\u00FCn kusurlu\"},{\"value\":\"wrongItem\",\"label\":\"Yanl\\u0131\\u015F \\u00FCr\\u00FCn\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"customer\"}]",
+                            Key = "retail-return-invoice",
+                            Kind = "Retail",
+                            Name = "Retail İade Faturası Oluşturma",
+                            Steps = "[{\"kind\":\"dbQuery\",\"query\":\"SELECT 1 AS ready\",\"key\":\"load-return\",\"title\":\"\\u0130adesi yap\\u0131lacak sipari\\u015F / kalem y\\u00FCklenir\",\"extract\":null,\"expect\":null},{\"kind\":\"soapRequest\",\"request\":{\"endpoint\":\"soap:invoices\",\"soapAction\":null,\"body\":\"\\u003Csoapenv:Envelope xmlns:soapenv=\\u0022http://schemas.xmlsoap.org/soap/envelope/\\u0022\\u003E\\u003Csoapenv:Body/\\u003E\\u003C/soapenv:Envelope\\u003E\"},\"key\":\"create-return-invoice\",\"title\":\"\\u0130ade faturas\\u0131 olu\\u015Fturma ak\\u0131\\u015F\\u0131 tetiklenir\",\"extract\":null,\"expect\":null},{\"kind\":\"assert\",\"key\":\"reconcile-amount\",\"title\":\"\\u0130ade fatura tutar mutabakat\\u0131 do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":{\"path\":null,\"jsonPath\":\"$.ok\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true}},{\"kind\":\"extract\",\"from\":\"create-return-invoice\",\"map\":{\"returnInvoiceNo\":\"$.returnInvoiceNo\"},\"key\":\"extract-result\",\"title\":\"\\u0130ade fatura no ve tutar \\u00E7\\u0131kt\\u0131 olarak al\\u0131n\\u0131r\",\"extract\":null,\"expect\":null}]",
+                            SupportsRepeat = false,
+                            UpdatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = new Guid("01991000-0000-7000-8000-000000000005"),
+                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Retail siparişin kargo statüsünü hedef adıma kadar ilerletir.",
+                            Inputs = "[{\"name\":\"orderNo\",\"label\":\"Sipari\\u015F no\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":\"SO-40011234\",\"help\":null,\"defaultValue\":null},{\"name\":\"targetStatus\",\"label\":\"Hedef stat\\u00FC\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"prepared\",\"label\":\"Haz\\u0131rland\\u0131\"},{\"value\":\"shipped\",\"label\":\"Kargoya verildi\"},{\"value\":\"inTransit\",\"label\":\"Yolda\"},{\"value\":\"delivered\",\"label\":\"Teslim edildi\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"shipped\"},{\"name\":\"emitWebhooks\",\"label\":\"Webhook\\u0027lar tetiklensin\",\"type\":\"boolean\",\"required\":false,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":true}]",
+                            Key = "retail-shipment-advance",
+                            Kind = "Retail",
+                            Name = "Retail Kargo Statüsü İlerletme",
+                            Steps = "[{\"kind\":\"dbQuery\",\"query\":\"SELECT 1 AS ready\",\"key\":\"read-current-status\",\"title\":\"Sipari\\u015Fin mevcut kargo stat\\u00FCs\\u00FC okunur\",\"extract\":null,\"expect\":null},{\"kind\":\"httpRequest\",\"request\":{\"method\":\"POST\",\"endpoint\":\"companyApi:shipments\",\"path\":\"/internal/shipments/advance\",\"query\":null,\"headers\":null,\"body\":null},\"key\":\"advance-status\",\"title\":\"Hedef stat\\u00FCye kadar ad\\u0131mlar ilerletilir\",\"extract\":null,\"expect\":null},{\"kind\":\"poll\",\"read\":{\"http\":{\"method\":\"GET\",\"endpoint\":\"companyApi:shipments\",\"path\":\"/internal/shipments/events\",\"query\":null,\"headers\":null,\"body\":null},\"soap\":null},\"until\":{\"path\":null,\"jsonPath\":\"$.ready\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true},\"intervalMs\":1000,\"timeoutMs\":15000,\"key\":\"verify-events\",\"title\":\"Her ad\\u0131mda event / webhook tetiklendi\\u011Fi do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":null},{\"kind\":\"assert\",\"key\":\"assert-webhooks\",\"title\":\"Beklenen webhook\\u0027lar al\\u0131nd\\u0131 m\\u0131 do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":{\"path\":null,\"jsonPath\":\"$.ok\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true}}]",
+                            SupportsRepeat = false,
+                            UpdatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = new Guid("01991000-0000-7000-8000-000000000006"),
+                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "3. parti (merchant) satıcı siparişinin kargo statüsünü ilerletir.",
+                            Inputs = "[{\"name\":\"merchantOrderNo\",\"label\":\"Merchant sipari\\u015F no\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":null},{\"name\":\"merchantId\",\"label\":\"Merchant no\",\"type\":\"string\",\"required\":true,\"options\":null,\"placeholder\":null,\"help\":null,\"defaultValue\":null},{\"name\":\"targetStatus\",\"label\":\"Hedef stat\\u00FC\",\"type\":\"select\",\"required\":true,\"options\":[{\"value\":\"approved\",\"label\":\"Onayland\\u0131\"},{\"value\":\"shipped\",\"label\":\"Kargoya verildi\"},{\"value\":\"delivered\",\"label\":\"Teslim edildi\"}],\"placeholder\":null,\"help\":null,\"defaultValue\":\"shipped\"},{\"name\":\"merchantApiToken\",\"label\":\"Merchant API token\",\"type\":\"secret\",\"required\":false,\"options\":null,\"placeholder\":null,\"help\":\"Bo\\u015F b\\u0131rak\\u0131l\\u0131rsa ortam\\u0131n varsay\\u0131lan servis token\\u2019\\u0131 kullan\\u0131l\\u0131r.\",\"defaultValue\":null}]",
+                            Key = "merchant-shipment-advance",
+                            Kind = "Merchant",
+                            Name = "Merchant Kargo Statüsü İlerletme",
+                            Steps = "[{\"kind\":\"dbQuery\",\"query\":\"SELECT 1 AS ready\",\"key\":\"resolve-merchant-order\",\"title\":\"3. parti sipari\\u015F \\u00E7\\u00F6z\\u00FCmlenir\",\"extract\":null,\"expect\":null},{\"kind\":\"httpRequest\",\"request\":{\"method\":\"POST\",\"endpoint\":\"companyApi:merchant\",\"path\":\"/internal/merchant/shipments/advance\",\"query\":null,\"headers\":null,\"body\":null},\"key\":\"advance-merchant-status\",\"title\":\"Merchant kargo ak\\u0131\\u015F\\u0131na g\\u00F6re stat\\u00FC ilerletilir\",\"extract\":null,\"expect\":null},{\"kind\":\"poll\",\"read\":{\"http\":{\"method\":\"GET\",\"endpoint\":\"companyApi:merchant\",\"path\":\"/internal/merchant/shipments/events\",\"query\":null,\"headers\":null,\"body\":null},\"soap\":null},\"until\":{\"path\":null,\"jsonPath\":\"$.ready\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true},\"intervalMs\":1000,\"timeoutMs\":15000,\"key\":\"verify-integration\",\"title\":\"Merchant entegrasyon ad\\u0131mlar\\u0131 do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":null},{\"kind\":\"assert\",\"key\":\"assert-merchant-flow\",\"title\":\"Retail\\u0027den farkl\\u0131 merchant ad\\u0131mlar\\u0131 do\\u011Frulan\\u0131r\",\"extract\":null,\"expect\":{\"path\":null,\"jsonPath\":\"$.ok\",\"xpath\":null,\"column\":null,\"op\":\"equals\",\"value\":true}}]",
+                            SupportsRepeat = false,
+                            UpdatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.ScenarioProfile", b =>
+                {
+                    b.HasOne("PaymentOrderOps.Domain.TestRuns.TestScenario", null)
+                        .WithMany()
+                        .HasForeignKey("ScenarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.TestRun", b =>
+                {
+                    b.HasOne("PaymentOrderOps.Domain.TestRuns.TestRun", null)
+                        .WithMany()
+                        .HasForeignKey("ParentRunId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.TestRunStep", b =>
+                {
+                    b.HasOne("PaymentOrderOps.Domain.TestRuns.TestRun", null)
+                        .WithMany("Steps")
+                        .HasForeignKey("TestRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.TestRuns.TestRun", b =>
+                {
+                    b.Navigation("Steps");
+                });
 #pragma warning restore 612, 618
         }
     }

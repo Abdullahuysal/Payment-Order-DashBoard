@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronRight, Home, PanelLeftClose, PanelLeftOpen, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { useAppStore } from '@/app/store';
 import { cn } from '@/lib/cn';
@@ -10,6 +11,7 @@ const inSection = (pathname: string, modPath: string) =>
   pathname === `/${modPath}` || pathname.startsWith(`/${modPath}/`);
 
 export function Sidebar() {
+  const { t } = useTranslation(['common', 'nav']);
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const toggle = useAppStore((s) => s.toggleSidebar);
   const { pathname } = useLocation();
@@ -76,14 +78,18 @@ export function Sidebar() {
       >
         <span className="h-2.5 w-2.5 rounded-full bg-primary" />
         {!collapsed && (
-          <span className="ml-2 text-sm font-semibold tracking-tight">
-            Payment&nbsp;·&nbsp;Order Ops
-          </span>
+          <span className="ml-2 text-sm font-semibold tracking-tight">{t('common:app.brand')}</span>
         )}
       </Link>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-        <NavItem to="/" icon={Home} label="Genel Bakış" collapsed={collapsed} end />
+        <NavItem
+          to="/"
+          icon={Home}
+          label={t('common:sidebar.overview')}
+          collapsed={collapsed}
+          end
+        />
         <div className="my-1.5 border-t border-border" />
         {MODULES.map((mod) => {
           const base = `/${mod.path}`;
@@ -94,9 +100,9 @@ export function Sidebar() {
               <NavItem
                 to={base}
                 icon={mod.icon}
-                label={mod.label}
+                label={t(`nav:modules.${mod.id}.label`)}
                 collapsed={collapsed}
-                badge={!hasChildren && !mod.implemented ? 'soon' : undefined}
+                badge={!hasChildren && !mod.implemented ? t('common:sidebar.soon') : undefined}
                 expandable={hasChildren}
                 expanded={isOpen}
                 onClick={hasChildren ? () => handleSectionClick(mod.id, mod.path) : undefined}
@@ -111,7 +117,11 @@ export function Sidebar() {
                   <div className="overflow-hidden">
                     <div className="mb-1 ml-[1.35rem] mt-0.5 space-y-0.5 border-l border-border pl-2">
                       {mod.children?.map((sub) => (
-                        <SubNavItem key={sub.id} to={`${base}/${sub.path}`} label={sub.label} />
+                        <SubNavItem
+                          key={sub.id}
+                          to={`${base}/${sub.path}`}
+                          label={t(`nav:subpages.${sub.id}.label`)}
+                        />
                       ))}
                     </div>
                   </div>
@@ -125,14 +135,14 @@ export function Sidebar() {
       <button
         type="button"
         onClick={toggle}
-        aria-label={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+        aria-label={collapsed ? t('common:sidebar.expandAria') : t('common:sidebar.collapseAria')}
         className={cn(
           'flex items-center gap-2 border-t border-border px-3 py-2.5 text-xs text-fg-subtle hover:text-fg-muted',
           collapsed && 'justify-center px-0',
         )}
       >
         {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-        {!collapsed && <span>Daralt</span>}
+        {!collapsed && <span>{t('common:sidebar.collapse')}</span>}
       </button>
     </aside>
   );
