@@ -1,13 +1,19 @@
 # Payment & Order Ops — Backend
 
-Internal ops API that backs the `frontend/` dashboard. This phase ships **one vertical
-slice only: Service Health check definitions** (a CRUD store for probe/curl definitions —
-it does **not** execute probes). Other modules (test-runs, orders, logs, auth) are not
-implemented yet.
+Internal ops API that backs the `frontend/` dashboard. Slices shipped so far:
+
+- **Service Health check definitions** — a CRUD store for probe/curl definitions (does
+  **not** execute probes).
+- **Message Queues & DLQ** — read-only RabbitMQ + Kafka observability (queues, topics,
+  consumer-group lag, dead-letter inspection, computed alerts) with a server-side domain
+  scope (`nameMatches` globs + a persisted per-environment `/scope` profile). No remediation.
+
+Other modules (test-runs, orders, logs, auth) are not implemented yet.
 
 **Single deployment, three logical environments.** One host + one connection string hold
-`dev` / `preprod` / `production` data; every Service Health request carries an
-`X-Environment` header that scopes all reads and writes (see *Environment scoping* below).
+`dev` / `preprod` / `production` data; every request carries an `X-Environment` header that
+scopes all reads and writes (see *Environment scoping* below). For Message Queues the same
+header selects which broker connection block is used.
 
 - .NET 10 · C# · Minimal API + `TypedResults`
 - EF Core 10 on **PostgreSQL** (Npgsql)
@@ -26,7 +32,8 @@ implemented yet.
 ```bash
 cd backend
 
-# 1. local PostgreSQL 17 on localhost:5544
+# 1. local infra: PostgreSQL 17 (localhost:5544), RabbitMQ + management
+#    (localhost:5672 / 15672, ops / ops_local_pw), single-node Kafka (localhost:9092)
 docker compose up -d
 
 # 2. restore the dotnet-ef local tool (first time only)
@@ -43,6 +50,7 @@ Then:
 | `http://localhost:5080/scalar/v1` | API reference (Scalar) |
 | `http://localhost:5080/openapi/v1.json` | OpenAPI document |
 | `http://localhost:5080/api/v1/service-health/checks` | Service Health CRUD |
+| `http://localhost:5080/api/v1/message-queues/brokers` | Message-queue broker status |
 | `http://localhost:5080/health` | Readiness (checks DB) |
 | `http://localhost:5080/alive` | Liveness |
 
@@ -58,9 +66,23 @@ Then:
 | --- | --- | --- |
 | `ConnectionStrings:Default` | PostgreSQL connection string | dev: `localhost:5544` · prod: unset (must be supplied) |
 | `Cors:AllowedOrigins` | allowed browser origins (bound via Options pattern to `CorsSettings`) | `["http://localhost:5173"]` |
+| `MessageBrokers:<Env>:RabbitMq` | management URL + creds + `VirtualHost` + `DeadLetterQueuePatterns` + `BacklogReadyThreshold` (default `100`) | unset → `503` from RabbitMQ endpoints in that env |
+| `MessageBrokers:<Env>:Kafka` | `BootstrapServers`, `SecurityProtocol`, optional SASL, `DeadLetterTopicPatterns`, lag thresholds | unset → `503` from Kafka endpoints in that env |
 | `Serilog:*` | sink / level configuration | Console, `Information` |
 
 CORS also exposes the `X-Correlation-ID` response header so the SPA can log it.
+
+`MessageBrokers` is keyed by logical environment (`Dev` / `Preprod` / `Production`). Secrets
+come from environment variables / user-secrets today
+(`MessageBrokers__Dev__RabbitMq__Password`, `MessageBrokers__Dev__Kafka__SaslPassword`);
+Vault later reads the **same key paths**. A missing environment or broker block, or a blank
+`ManagementUrl` / `BootstrapServers`, means "not configured" and the matching endpoints
+answer `503`; a configured broker that cannot be reached answers `502`.
+
+`appsettings.json` ships all three environments with **blank** connection fields (so every
+broker endpoint is `503` until filled). `appsettings.Development.json` points `Dev` at the
+`docker compose` RabbitMQ (`ops` / `ops_local_pw`) and Kafka (`localhost:9092`) so local
+runs work out of the box; point it at the real brokers when you have them.
 
 ## Database migrations
 
@@ -108,10 +130,17 @@ dotnet test
 
 Integration tests (`tests/PaymentOrderOps.Api.Tests`) run the real API through
 `WebApplicationFactory` against a throwaway **PostgreSQL container** (Testcontainers), so
-**Docker must be running**. They cover list/seed, create + round-trip, duplicate → 409,
+**Docker must be running**. Service Health: list/seed, create + round-trip, duplicate → 409,
 validation → 400, not-found → 404, full replace, soft-delete, missing/invalid
 `X-Environment` → 400, cross-environment isolation (`404` + hidden from list), same
-URL allowed in two environments, and body/header environment mismatch → 400.
+URL allowed in two environments, body/header environment mismatch → 400.
+Message Queues: `X-Environment` enforced, `brokers` lists both brokers as unconfigured,
+list/topic/consumer-group endpoints → `503` when unconfigured, unknown broker/category → `400`,
+`dead-letters` / `alerts` degrade to a partial result (incl. `scopedTotalDeadLettered`),
+`GET`/`PUT /scope` round-trip + normalisation + per-environment isolation + validation → `400`.
+Unit: `GlobPattern.Matches*` (strict + loose), `QueueCategories` classification, and
+name-filter-before-paging on `ToPage`. Full-HTTP filtering against a live broker
+(RabbitMQ / Kafka Testcontainer) is still not automated — verify against `docker compose`.
 
 ## Project layout
 
@@ -121,9 +150,15 @@ backend/
   Directory.Build.props / Directory.Packages.props / .editorconfig
   docker-compose.yml
   src/
-    PaymentOrderOps.Domain          entity + enums (no dependencies)
-    PaymentOrderOps.Infrastructure  AppDbContext, EF configuration, migrations, seed
-    PaymentOrderOps.Api             host + feature slices (Features/ServiceHealth/*)
+    PaymentOrderOps.Domain          entities + enums (no dependencies)
+    PaymentOrderOps.Infrastructure  AppDbContext, EF config, migrations, seed
+      Messaging/                     RabbitMQ management client + Kafka admin gateway + options
+    PaymentOrderOps.Api             host + feature slices
+      Infrastructure/Endpoints/     IEndpointModule + discovery / API-version wiring
+      Features/<Feature>/V<n>/
+        <Operation>/                one folder per endpoint: endpoint + its request + validator
+        Shared/                     response DTO, mapping, shared field rules, write invariants
+        <Feature>V<n>Module.cs      groups the operation endpoints under one route + filter
   tests/
     PaymentOrderOps.Api.Tests       WebApplicationFactory + Testcontainers
 ```
@@ -166,6 +201,61 @@ PATCH (partial update) is intentionally not implemented this phase.
   present it must equal the header, otherwise `400`.
 - CORS allows any request header, `X-Environment` included.
 
+## API — Message Queues & DLQ
+
+Base: `/api/v1/message-queues` · **`X-Environment` required** · every endpoint is `GET`
+except `PUT /scope` (a local preference, not a broker write). Not configured → `503`;
+configured but unreachable → `502`; both as `ProblemDetails`.
+
+| Route | Purpose |
+| --- | --- |
+| `/brokers` | brokers configured for the env + reachability (never `503`; reports `configured:false`) |
+| `/brokers/{broker}/health` | deep health — `broker` = `rabbitmq` \| `kafka` (else `400`) |
+| `/rabbitmq/queues` | queues: depth, consumers, rates, DLQ flags, computed `categories[]` · `?nameContains` `?nameMatches`✱ `?scoped` `?category`✱ `?onlyProblems` `?deadLetterOnly` `?page` `?pageSize` |
+| `/rabbitmq/queues/{vhost}/{name}` | one queue + `categories[]`, arguments, `x-dead-letter-*`, bindings (`vhost` URL-encoded, `/` → `%2F`) · `404` |
+| `/rabbitmq/queues/{vhost}/{name}/messages` | preview without consuming (`ack_requeue_true`); `x-death` reasons · `?count` (≤ 50) · `404` |
+| `/kafka/topics` | topics: partitions, replication, under-replicated, DLT flag · `?nameContains` `?nameMatches`✱ `?scoped` `?includeInternal` `?deadLetterOnly` `?onlyProblems` `?page` `?pageSize` |
+| `/kafka/topics/{name}` | per-partition low/high watermark, ISR, message counts · `404` |
+| `/kafka/topics/{name}/messages` | tail of a topic/partition without committing · `?partition` `?fromOffset` `?count` (≤ 50) · `404` |
+| `/kafka/consumer-groups` | groups: state, members, total lag · `?groupContains` `?nameMatches`✱ `?scoped` `?onlyLagging` `?minLag` |
+| `/kafka/consumer-groups/{groupId}` | per-partition committed / high / lag + member assignments · `404` |
+| `/dead-letters` | unified DLQ + DLT summary; `warnings[]` for an unconfigured/unreachable broker (still `200`) · `?nameMatches`✱ `?scoped` |
+| `/alerts` | computed, severity-ranked problems · `?nameMatches`✱ `?scoped` (filters on `alert.resource`) |
+| `GET /scope` | this environment's saved domain profile → `{ patterns: string[], updatedAt: string? }` (no row → `{ patterns: [], updatedAt: null }`) |
+| `PUT /scope` | body `{ patterns: string[] }` → `200` + resource. Upsert, one row per environment, last-write-wins. `400` on null / > 100 patterns / a blank or > 256-char pattern |
+
+✱ **`nameMatches`** is repeatable (`?nameMatches=a&nameMatches=b`). A value containing `*`
+is an anchored glob (`*` = any run of characters, everything else literal); a value with no
+`*` means "contains". Always case-insensitive. Multiple values are **OR**. It combines with
+the other filters as **AND**, and is applied **before** `page`/`pageSize` — so
+`PagedResponse.totalCount` is the filtered count.
+
+**`?scoped=true`** loads the current environment's `PUT /scope` patterns and adds them to the
+effective `nameMatches` set (union; still OR within the set). An empty or absent profile makes
+`?scoped=true` a no-op. `/scope` is **per environment** because the whole app scopes state by
+`X-Environment` (broker connection blocks, Service Health rows) and queue names / team
+boundaries differ across `dev` / `preprod` / `production`; `PUT /scope` writes a local
+preference row and never contacts a broker.
+
+**`/dead-letters`**: `totalDeadLettered` is always the unfiltered grand total across both
+brokers; `scopedTotalDeadLettered` is the sum after `nameMatches` / `scoped` (equal when no
+filter). `/alerts` filtering is on `alert.resource`, so a broker- or cluster-level alert whose
+resource is not a queue name is hidden when `nameMatches` is set.
+
+**`?category`** (RabbitMQ queues only) is repeatable, OR-combined, values `error` | `skip` |
+`backlog` (unknown → `400`). Every queue also carries a computed `categories[]`:
+- `error` — `isDeadLetter` (glob match on `DeadLetterQueuePatterns`) **or** name contains one of
+  `error, errors, dlq, dead-letter, failed, failure, poison`.
+- `skip` — name contains one of `skip, skipped, parked, quarantine, hold`.
+- `backlog` — `messagesReady > 0` **and** (`consumers == 0` **or** `messagesReady >=`
+  `MessageBrokers:<Env>:RabbitMq:BacklogReadyThreshold`, default `100`).
+
+Dead-letter classification is glob-based (`DeadLetterQueuePatterns` / `DeadLetterTopicPatterns`);
+`x-dead-letter-exchange` on a queue is surfaced separately as `hasDeadLetterConfigured`.
+`/rabbitmq/queues` and `/kafka/topics` are paged (`PagedResponse<T>`); Kafka list omits
+message counts (`approxMessageCount: -1`) — use the topic detail endpoint. Replay / purge /
+message delete are intentionally **not** implemented this phase.
+
 ## Architecture decisions
 
 - **PostgreSQL, not SQL Server.** Native `jsonb` maps the `Headers` dictionary to a real,
@@ -174,13 +264,38 @@ PATCH (partial update) is intentionally not implemented this phase.
   internal tool, which also keeps the Testcontainers test loop fast. The provider is
   reached only through `ConnectionStrings:Default`, so swapping is a config + provider
   change, not a code change.
-- **Vertical slice, few projects, no MediatR.** Each feature owns its endpoints,
-  contracts, validation and mapping under `Features/<Feature>/`. Handlers are static
-  functions that take `AppDbContext` directly — no repository layer, no request pipeline
-  indirection. The only shared cross-cutting pieces are the exception handler, correlation
-  middleware and `ProblemDetails` wiring.
+- **Vertical slice, few projects, no MediatR.** Each feature version owns its endpoints,
+  contracts, validation and mapping under `Features/<Feature>/V<n>/`. Every operation is a
+  folder (`CreateCheck/`, `ReplaceCheck/`, …) holding just that endpoint, its request record
+  and its validator; a `…Module` groups them. Handlers are static functions that take
+  `AppDbContext` directly — no repository layer, no request pipeline indirection. Anything
+  used by more than one operation (the response DTO, `ToResponse` mapping, shared field
+  rules, the create/replace write invariants in `ServiceHealthWriteRules`) lives in
+  `V<n>/Shared/` — a helper, not a service class. The only shared cross-cutting pieces are
+  the exception handler, correlation middleware and `ProblemDetails` wiring.
+- **Endpoints self-register.** A slice's `…Module` implements `IEndpointModule`;
+  `app.MapFeatureModules()` discovers every implementation in the API assembly at startup,
+  so a new feature or API version never edits `Program.cs`. Supported API versions are
+  declared once in `EndpointModuleExtensions.SupportedVersions`; the `Created` location is
+  derived from the request path, so it is not pinned to `v1`.
 - **Entities never leave the API.** Separate `record` request/response DTOs with explicit
   hand-written mapping (`ServiceHealthMapping`). No AutoMapper.
+- **Broker access is stateless gateways, no ambient client.** `IRabbitMqManagementClient`
+  talks to the RabbitMQ **management HTTP API** with a single pooled `HttpClient` (no
+  `RabbitMQ.Client` dependency — AMQP can't report queue depth/rates); `IKafkaAdminGateway`
+  wraps `Confluent.Kafka` `IAdminClient` + a short-lived consumer for watermarks and tail
+  reads. Both take the connection `*Options` **per call**; the API-side scoped
+  `MessageBrokerResolver` picks the block for `X-Environment` and throws
+  `MessageBrokerNotConfiguredException` (→ 503) / gateways throw
+  `MessageBrokerUnreachableException` (→ 502), both mapped in `GlobalExceptionHandler`.
+  Aggregate endpoints (`/dead-letters`, `/alerts`) catch the unreachable case and return a
+  partial result instead of failing.
+- **Domain scope filters in-process, after fetch, before paging.** The target is one shared
+  broker per environment; the list endpoints pull the full set from the broker, then apply
+  `nameMatches` (a scoped `QueueScopeResolver` unions the request's globs with the persisted
+  `/scope` profile) and `category` in memory. `QueueScopeProfile` is one `jsonb` `string[]`
+  row per environment (`Environment` is the PK), audited via `StampAudit` like the rest.
+  It is view state, not a broker mutation, so it lives beside the read-only endpoints.
 - **DTO shape is the frontend contract.** `System.Text.Json` web defaults + a camelCase
   `JsonStringEnumConverter`; `method` is carried as a string (frontend wants `GET`), the
   enum stays internal for canonical de-duplication.

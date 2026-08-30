@@ -47,6 +47,19 @@ export function Sidebar() {
       return next;
     });
 
+  const openSection = (id: string) =>
+    setOpenSections((cur) => {
+      if (cur.has(id)) return cur;
+      const next = new Set(cur);
+      next.add(id);
+      return next;
+    });
+
+  const handleSectionClick = (id: string, modPath: string) => {
+    if (inSection(pathname, modPath)) toggleSection(id);
+    else openSection(id);
+  };
+
   return (
     <aside
       className={cn(
@@ -86,7 +99,7 @@ export function Sidebar() {
                 badge={!hasChildren && !mod.implemented ? 'soon' : undefined}
                 expandable={hasChildren}
                 expanded={isOpen}
-                onClick={hasChildren ? () => toggleSection(mod.id) : undefined}
+                onClick={hasChildren ? () => handleSectionClick(mod.id, mod.path) : undefined}
               />
               {hasChildren && (
                 <div

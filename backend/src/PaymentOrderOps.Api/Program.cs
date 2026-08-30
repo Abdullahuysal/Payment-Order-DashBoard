@@ -1,11 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Asp.Versioning;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using PaymentOrderOps.Api.Features.ServiceHealth;
+using PaymentOrderOps.Api.Features.MessageQueues.V1.Shared;
+using PaymentOrderOps.Api.Features.ServiceHealth.V1.CreateCheck;
 using PaymentOrderOps.Api.Infrastructure;
+using PaymentOrderOps.Api.Infrastructure.Endpoints;
 using PaymentOrderOps.Api.Options;
+using PaymentOrderOps.Infrastructure.Messaging;
 using PaymentOrderOps.Infrastructure;
 using PaymentOrderOps.Infrastructure.Persistence;
 using Scalar.AspNetCore;
@@ -34,13 +36,7 @@ builder.Services.AddCors(options => options.AddPolicy(corsPolicyName, policy => 
     .AllowAnyMethod()
     .WithExposedHeaders(CorrelationIdMiddleware.HeaderName)));
 
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-    options.ApiVersionReader = new UrlSegmentApiVersionReader();
-});
+builder.Services.AddApiVersioningStack();
 
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
 {
@@ -57,6 +53,10 @@ builder.Services.AddScoped<IEnvironmentContext>(sp => sp.GetRequiredService<Envi
 
 builder.Services.AddPersistence(builder.Configuration);
 
+builder.Services.AddMessageBrokers(builder.Configuration);
+builder.Services.AddScoped<MessageBrokerResolver>();
+builder.Services.AddScoped<QueueScopeResolver>();
+
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
 
@@ -71,12 +71,9 @@ app.UseCors(corsPolicyName);
 app.MapOpenApi();
 app.MapScalarApiReference();
 
-var versionSet = app.NewApiVersionSet()
-    .HasApiVersion(new ApiVersion(1, 0))
-    .ReportApiVersions()
-    .Build();
+var versionSet = app.BuildApiVersionSet();
 
-app.MapServiceHealthEndpoints(versionSet);
+app.MapFeatureModules(versionSet);
 
 app.MapHealthChecks("/health", new HealthCheckOptions
 {

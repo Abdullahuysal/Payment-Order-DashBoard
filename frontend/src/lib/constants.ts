@@ -39,7 +39,7 @@ export const TEST_RUN_SCENARIOS: readonly SubPageDef[] = [
   {
     id: 'order-bulk',
     path: 'order-bulk',
-    label: 'Çoklu Sipariş Oluşturma',
+    label: 'Toplu Sipariş Oluşturma',
     description: 'Aynı anda çok sayıda sipariş üretir (yük / kapsam testi).',
   },
   {
@@ -57,13 +57,13 @@ export const TEST_RUN_SCENARIOS: readonly SubPageDef[] = [
   {
     id: 'retail-shipment-advance',
     path: 'retail-shipment-advance',
-    label: 'Retail Kargo Statü İlerletme',
+    label: 'Retail Kargo Statüsü İlerletme',
     description: 'Retail siparişin kargo statüsünü hedef adıma kadar ilerletir.',
   },
   {
     id: 'merchant-shipment-advance',
     path: 'merchant-shipment-advance',
-    label: 'Merchant Kargo Statü İlerletme',
+    label: 'Merchant Kargo Statüsü İlerletme',
     description: '3. parti (merchant) satıcı siparişinin kargo statüsünü ilerletir.',
   },
 ] as const;
@@ -81,9 +81,10 @@ export const MODULES: readonly ModuleDef[] = [
     id: 'test-runs',
     path: 'test-runs',
     label: 'Test Koşumları',
-    description: 'QA senaryolarını seçili ortama karşı tetikler, pass/fail gösterir.',
+    description:
+      'Uçtan uca test senaryolarını seçili ortama karşı çalıştırır, adım adım pass/fail gösterir.',
     icon: FlaskConical,
-    implemented: false,
+    implemented: true,
     children: TEST_RUN_SCENARIOS,
   },
   {
@@ -107,9 +108,9 @@ export const MODULES: readonly ModuleDef[] = [
     path: 'queues',
     label: 'Mesaj Kuyrukları & DLQ',
     description:
-      'Kafka/Rabbit topic’leri, consumer lag ve DLQ; mesaj görüntüle / yeniden kuyruğa al.',
+      'RabbitMQ/Kafka kuyruk ve topic’leri, consumer lag, DLQ ve uyarılar; mesaj önizleme (salt-okunur).',
     icon: Inbox,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'errors',

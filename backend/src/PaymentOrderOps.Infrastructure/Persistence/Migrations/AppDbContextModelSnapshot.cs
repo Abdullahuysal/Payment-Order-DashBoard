@@ -22,6 +22,27 @@ namespace PaymentOrderOps.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PaymentOrderOps.Domain.Messaging.QueueScopeProfile", b =>
+                {
+                    b.Property<string>("Environment")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Dev");
+
+                    b.Property<string>("Patterns")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Patterns");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Environment");
+
+                    b.ToTable("QueueScopeProfiles", (string)null);
+                });
+
             modelBuilder.Entity("PaymentOrderOps.Domain.ServiceHealth.ServiceHealthCheck", b =>
                 {
                     b.Property<Guid>("Id")

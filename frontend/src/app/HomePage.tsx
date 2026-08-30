@@ -17,7 +17,7 @@ export default function HomePage() {
       <h1 className="mt-2 text-2xl font-semibold tracking-tight text-fg">Ops Panel</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-fg-muted">
         Ödeme ve sipariş ekibindeki geliştirici ve QA’in günlük operasyon işleri için tek panel.
-        Servis sağlığını izle, QA senaryolarını koştur, sipariş durumunu sorgula, logları AI ile
+        Servis sağlığını izle, test senaryolarını koştur, sipariş durumunu sorgula, logları AI ile
         yorumla — hepsi seçili ortam üzerinden.
       </p>
 

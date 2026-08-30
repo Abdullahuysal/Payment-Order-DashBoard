@@ -4,6 +4,7 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
   readonly VITE_DEFAULT_ENV?: 'dev' | 'preprod' | 'production';
   readonly VITE_HTTP_TIMEOUT_MS?: string;
+  readonly VITE_TESTRUNS_MOCK?: string;
 }
 
 interface ImportMeta {

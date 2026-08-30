@@ -20,6 +20,11 @@ interface AppState {
 
   commandOpen: boolean;
   setCommandOpen: (open: boolean) => void;
+
+  queueScopeEnabled: boolean;
+  queueScopePatterns: string[];
+  setQueueScopeEnabled: (enabled: boolean) => void;
+  setQueueScopePatterns: (patterns: string[]) => void;
 }
 
 const LEGACY_ENV: Record<string, AppEnvironment> = {
@@ -44,6 +49,11 @@ export const useAppStore = create<AppState>()(
 
       commandOpen: false,
       setCommandOpen: (commandOpen) => set({ commandOpen }),
+
+      queueScopeEnabled: false,
+      queueScopePatterns: [],
+      setQueueScopeEnabled: (queueScopeEnabled) => set({ queueScopeEnabled }),
+      setQueueScopePatterns: (queueScopePatterns) => set({ queueScopePatterns }),
     }),
     {
       name: 'boyner-ops-ui',
@@ -52,6 +62,8 @@ export const useAppStore = create<AppState>()(
         environment: s.environment,
         theme: s.theme,
         sidebarCollapsed: s.sidebarCollapsed,
+        queueScopeEnabled: s.queueScopeEnabled,
+        queueScopePatterns: s.queueScopePatterns,
       }),
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<AppState>;
@@ -67,7 +79,14 @@ export const useAppStore = create<AppState>()(
             ? p.environment
             : current.environment;
         const theme: ThemeName = p.theme === 'light' ? 'light' : 'dark';
-        return { ...current, ...p, environment, theme };
+        const queueScopePatterns = Array.isArray(p.queueScopePatterns)
+          ? p.queueScopePatterns.filter((x): x is string => typeof x === 'string')
+          : current.queueScopePatterns;
+        const queueScopeEnabled =
+          typeof p.queueScopeEnabled === 'boolean'
+            ? p.queueScopeEnabled
+            : current.queueScopeEnabled;
+        return { ...current, ...p, environment, theme, queueScopePatterns, queueScopeEnabled };
       },
     },
   ),

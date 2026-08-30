@@ -27,4 +27,8 @@
     <ProjectReference Include="..\PaymentOrderOps.Infrastructure\PaymentOrderOps.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="PaymentOrderOps.Api.Tests" />
+  </ItemGroup>
+
 </Project>

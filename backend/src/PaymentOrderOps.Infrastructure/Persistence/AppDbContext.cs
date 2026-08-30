@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PaymentOrderOps.Domain.Messaging;
 using PaymentOrderOps.Domain.ServiceHealth;
 
 namespace PaymentOrderOps.Infrastructure.Persistence;
@@ -14,6 +15,8 @@ public sealed class AppDbContext : DbContext
     }
 
     public DbSet<ServiceHealthCheck> ServiceHealthChecks => Set<ServiceHealthCheck>();
+
+    public DbSet<QueueScopeProfile> QueueScopeProfiles => Set<QueueScopeProfile>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -49,6 +52,14 @@ public sealed class AppDbContext : DbContext
                     entry.Property(e => e.CreatedAtUtc).IsModified = false;
                     entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
                     break;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<QueueScopeProfile>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified)
+            {
+                entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
             }
         }
     }
