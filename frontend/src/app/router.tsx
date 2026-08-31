@@ -9,6 +9,7 @@ import ScenarioPage from '@/features/test-runs/ScenarioPage';
 import RunPage from '@/features/test-runs/RunPage';
 import RunHistoryPage from '@/features/test-runs/RunHistoryPage';
 import TestDataPage from '@/features/test-data/TestDataPage';
+import TodoPage from '@/features/todo/TodoPage';
 import OrdersPage from '@/features/orders/OrdersPage';
 import OrderDossierPage from '@/features/orders/OrderDossierPage';
 import QueuesPage from '@/features/queues/QueuesPage';
@@ -81,6 +82,11 @@ export const router = createBrowserRouter([
           { index: true, element: <DevToolsPage /> },
           { path: ':toolKey', element: <ToolPage /> },
         ],
+      },
+      {
+        path: 'todo',
+        handle: { crumbKey: 'nav:modules.todo.label' },
+        element: <TodoPage />,
       },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

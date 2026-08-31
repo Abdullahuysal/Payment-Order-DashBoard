@@ -28,6 +28,9 @@ const filtered = queues.filter((q) => q.name.includes(term));
 
 - Feature dilimi deseni: `features/<ad>/` → `types.ts`, `api/*.api.ts`, `hooks/*.ts`,
   `lib.ts` (saf yardımcılar), `<Ad>Page.tsx`, `components/*`.
+- Sol menüye yeni bir modül eklerken `lib/constants.ts`'teki `MODULES` dizisinin **en sonuna**
+  eklenir (aradaki mevcut sıraya sıkıştırılmaz); `router.tsx`'teki route sırası da menü
+  sırasıyla eşleşir.
 - Veri çekme: TanStack Query; ortak `apiClient()` (`services/http.ts`); ortam `X-Environment`
   header'ıyla, `useAppStore((s) => s.environment)` üzerinden.
 - `exactOptionalPropertyTypes` açık → opsiyonel alanlar `prop?: T | undefined` biçiminde.

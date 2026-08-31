@@ -19,6 +19,10 @@ const nav = {
         'Üretilen kayıtları etiketle ve toplu temizle',
       ],
     },
+    todo: {
+      label: 'Yapılacaklar',
+      description: 'Kişi bazlı basit bir yapılacaklar listesi — günlük işlerini unutma.',
+    },
     orders: {
       label: 'Sipariş Kontrol',
       description: 'DB üzerinde sipariş durumu sorgular (read-only).',

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PaymentOrderOps.Domain.Messaging;
 using PaymentOrderOps.Domain.ServiceHealth;
 using PaymentOrderOps.Domain.TestRuns;
+using PaymentOrderOps.Domain.Todo;
 
 namespace PaymentOrderOps.Infrastructure.Persistence;
 
@@ -26,6 +27,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<TestRun> TestRuns => Set<TestRun>();
 
     public DbSet<TestRunStep> TestRunSteps => Set<TestRunStep>();
+
+    public DbSet<TodoOwner> TodoOwners => Set<TodoOwner>();
+
+    public DbSet<TodoItem> TodoItems => Set<TodoItem>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -107,6 +112,21 @@ public sealed class AppDbContext : DbContext
             if (entry.State == EntityState.Added)
             {
                 entry.Property(e => e.CreatedAtUtc).CurrentValue = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<TodoItem>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Property(e => e.CreatedAtUtc).CurrentValue = now;
+                    entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+                    break;
+                case EntityState.Modified:
+                    entry.Property(e => e.CreatedAtUtc).IsModified = false;
+                    entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+                    break;
             }
         }
     }

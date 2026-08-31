@@ -3,6 +3,7 @@ import {
   DatabaseZap,
   FlaskConical,
   Inbox,
+  ListChecks,
   PackageSearch,
   ScrollText,
   TriangleAlert,
@@ -11,7 +12,15 @@ import {
 } from 'lucide-react';
 
 export type ModuleId =
-  'health' | 'test-runs' | 'test-data' | 'orders' | 'queues' | 'errors' | 'logs' | 'dev-tools';
+  | 'health'
+  | 'test-runs'
+  | 'test-data'
+  | 'orders'
+  | 'queues'
+  | 'errors'
+  | 'logs'
+  | 'dev-tools'
+  | 'todo';
 
 export type TestRunScenarioId =
   | 'order-create'
@@ -75,4 +84,5 @@ export const MODULES: readonly ModuleDef[] = [
     implemented: true,
     children: DEV_TOOL_PAGES,
   },
+  { id: 'todo', path: 'todo', icon: ListChecks, implemented: true },
 ] as const;

@@ -21,6 +21,10 @@ const nav: typeof trNav = {
         'Tag generated records and bulk-clean them',
       ],
     },
+    todo: {
+      label: 'Todo',
+      description: 'A simple per-person todo list — don’t forget what needs doing today.',
+    },
     orders: {
       label: 'Order Lookup',
       description: 'Queries order status against the DB (read-only).',
