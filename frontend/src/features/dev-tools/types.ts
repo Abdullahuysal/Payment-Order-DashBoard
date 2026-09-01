@@ -1,4 +1,20 @@
-export type DevToolKey = 'json' | 'xml' | 'list' | 'sql-list';
+export type DevToolKey =
+  | 'json'
+  | 'xml'
+  | 'list'
+  | 'sql-list'
+  | 'jwt'
+  | 'base64'
+  | 'url'
+  | 'timestamp'
+  | 'case'
+  | 'whitespace'
+  | 'json-flatten'
+  | 'json-csv'
+  | 'curl'
+  | 'regex'
+  | 'number-base'
+  | 'html';
 
 export type OutputLanguage = 'json' | 'xml' | 'sql' | 'text';
 
@@ -9,6 +25,7 @@ export type OptionState = Record<string, OptionValue>;
 export interface DevToolRunRequest {
   input: string;
   options: OptionState;
+  inputB?: string | undefined;
 }
 
 export interface DevToolStat {
@@ -28,3 +45,9 @@ export interface DevToolTransform {
   stats: DevToolStat[];
   notes: string[];
 }
+
+export type DevToolTransformFn = (
+  input: string,
+  options: OptionState,
+  inputB?: string,
+) => DevToolTransform;

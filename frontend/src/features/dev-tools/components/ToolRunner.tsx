@@ -11,27 +11,45 @@ import { ResultPanel } from './ResultPanel';
 import { InlineHint, PanelHeading } from './kit';
 
 export function ToolRunner({ config }: { config: DevToolConfig }) {
+  const secondary = config.secondaryInput;
+
   const [input, setInput] = useState('');
+  const [inputB, setInputB] = useState('');
   const [options, setOptions] = useState<OptionState>({ ...config.defaults });
 
   const runner = useDevToolRunner(config.key);
   const { mutate, reset } = runner;
   const inputRef = useRef(input);
   inputRef.current = input;
+  const inputBRef = useRef(inputB);
+  inputBRef.current = inputB;
   const attemptedRef = useRef(false);
 
-  const run = () => {
-    const value = inputRef.current;
-    if (value.trim().length === 0) return;
+  const runNow = () => {
+    if (inputRef.current.trim().length === 0) return;
     attemptedRef.current = true;
-    mutate({ input: value, options });
+    mutate(
+      secondary
+        ? { input: inputRef.current, inputB: inputBRef.current, options }
+        : { input: inputRef.current, options },
+    );
   };
+
+  const run = () => runNow();
 
   useEffect(() => {
     if (!attemptedRef.current || inputRef.current.trim().length === 0) return;
-    const id = window.setTimeout(() => mutate({ input: inputRef.current, options }), 150);
+    const id = window.setTimeout(
+      () =>
+        mutate(
+          secondary
+            ? { input: inputRef.current, inputB: inputBRef.current, options }
+            : { input: inputRef.current, options },
+        ),
+      150,
+    );
     return () => window.clearTimeout(id);
-  }, [options, mutate]);
+  }, [options, inputB, secondary, mutate]);
 
   const setOption = (key: string, value: OptionValue) =>
     setOptions((current) => ({ ...current, [key]: value }));
@@ -58,11 +76,12 @@ export function ToolRunner({ config }: { config: DevToolConfig }) {
             >
               örnek yükle
             </button>
-            {input.length > 0 && (
+            {(input.length > 0 || inputB.length > 0) && (
               <button
                 type="button"
                 onClick={() => {
                   setInput('');
+                  setInputB('');
                   attemptedRef.current = false;
                   reset();
                 }}
@@ -82,6 +101,31 @@ export function ToolRunner({ config }: { config: DevToolConfig }) {
           placeholder={config.inputPlaceholder}
           className="h-64 w-full resize-y rounded-lg border border-border bg-bg px-3 py-2.5 font-mono text-xs leading-relaxed text-fg placeholder:text-fg-subtle focus:border-border-strong focus:outline-none"
         />
+
+        {secondary && (
+          <>
+            <div className="flex items-center justify-between pt-1">
+              <PanelHeading>{secondary.label}</PanelHeading>
+              {secondary.sample !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => setInputB(secondary.sample ?? '')}
+                  className="text-[11px] text-fg-subtle transition-colors hover:text-fg-muted"
+                >
+                  örnek yükle
+                </button>
+              )}
+            </div>
+            <textarea
+              value={inputB}
+              onChange={(event) => setInputB(event.target.value)}
+              onKeyDown={onKeyDown}
+              spellCheck={false}
+              placeholder={secondary.placeholder}
+              className="h-64 w-full resize-y rounded-lg border border-border bg-bg px-3 py-2.5 font-mono text-xs leading-relaxed text-fg placeholder:text-fg-subtle focus:border-border-strong focus:outline-none"
+            />
+          </>
+        )}
 
         {config.options.length > 0 && (
           <div className="rounded-lg border border-border bg-surface px-3 py-1.5">

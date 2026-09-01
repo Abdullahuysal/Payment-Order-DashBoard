@@ -23,7 +23,11 @@ export const mockDevToolsApi: DevToolsApi = {
     if (!tool) return Promise.reject(invalidInput(`Bilinmeyen araç: ${key}`));
 
     try {
-      const result = tool.transform(request.input, { ...tool.defaults, ...request.options });
+      const result = tool.transform(
+        request.input,
+        { ...tool.defaults, ...request.options },
+        request.inputB,
+      );
       const payload: DevToolRunResult = { ...result, language: tool.language };
       return latency(payload);
     } catch (cause) {

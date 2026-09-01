@@ -99,6 +99,59 @@ const nav = {
       label: 'SQL Liste Oluşturucu',
       description: 'Satırları tırnaklar, önek/sonek ekler, IN (…) için tek ifadede birleştirir.',
     },
+    jwt: {
+      label: 'JWT Çözücü',
+      description:
+        'JWT’yi parçalara böler; header ve payload’ı okunur JSON gösterir. İmza doğrulamaz.',
+    },
+    base64: {
+      label: 'Base64 Çevir',
+      description: 'Metni UTF-8 base64’e çevirir ya da çözer; URL-güvenli ve 76 karakter sarma.',
+    },
+    url: {
+      label: 'URL / Query Ayrıştırıcı',
+      description: 'Tam URL ya da query string’i parçalara ayırır; satırlardan query string kurar.',
+    },
+    timestamp: {
+      label: 'Zaman Damgası Çevir',
+      description: 'Epoch (s/ms) ve ISO tarihleri çevirir; yerel saat dilimi ve görece zaman.',
+    },
+    case: {
+      label: 'Kılıf Dönüştürücü',
+      description: 'Metni camel/pascal/snake/kebab/constant/sentence/title kılıfına çevirir.',
+    },
+    whitespace: {
+      label: 'Boşluk / Görünmez Temizleyici',
+      description:
+        'Sondaki boşluğu kırpar, boş satırları teke indirir, görünmez karakterleri siler.',
+    },
+    'json-flatten': {
+      label: 'JSON Düzleştir / Aç',
+      description: 'İç içe JSON’ı tek seviyeli `a.b.c` anahtarlara düzleştirir ya da tersine açar.',
+    },
+    'json-csv': {
+      label: 'JSON ↔ CSV',
+      description: 'Düz nesne dizisini CSV’ye çevirir ya da CSV’yi nesne dizisine döndürür.',
+    },
+    curl: {
+      label: 'cURL Ayrıştır / Oluştur',
+      description:
+        'cURL komutunu method/url/headers/body yapıya ayrıştırır ya da yapıdan komut üretir.',
+    },
+    regex: {
+      label: 'Regex Test',
+      description: 'Deseni metne uygular; eşleşmeleri listeler, değiştirir ya da metni böler.',
+    },
+    'number-base': {
+      label: 'Sayı Tabanı Çevir',
+      description:
+        'Tamsayıları 2/8/10/16 tabanları arasında çevirir (BigInt); hepsini birden gösterir.',
+    },
+    html: {
+      label: 'HTML Küçült / Biçimle',
+      description:
+        'HTML’i okunur girintiler ya da tek satıra küçültür; void ve raw element’lere dikkat eder.',
+    },
   },
   crumbs: {
     runHistory: 'Koşum geçmişi',

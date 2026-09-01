@@ -101,6 +101,61 @@ const nav: typeof trNav = {
       label: 'SQL List Builder',
       description: 'Quotes rows, adds prefix/suffix, joins into a single IN (…) expression.',
     },
+    jwt: {
+      label: 'JWT Decoder',
+      description:
+        'Splits a JWT into parts; shows header and payload as readable JSON. No signature check.',
+    },
+    base64: {
+      label: 'Base64 Convert',
+      description:
+        'Encodes text to UTF-8 base64 or decodes it; URL-safe alphabet and 76-char wrap.',
+    },
+    url: {
+      label: 'URL / Query Parser',
+      description:
+        'Breaks a full URL or query string into parts; builds a query string from lines.',
+    },
+    timestamp: {
+      label: 'Timestamp Convert',
+      description:
+        'Converts between epoch (s/ms) and ISO dates; local time zone and relative time.',
+    },
+    case: {
+      label: 'Case Converter',
+      description: 'Converts text to camel/pascal/snake/kebab/constant/sentence/title case.',
+    },
+    whitespace: {
+      label: 'Whitespace / Invisible Cleaner',
+      description: 'Trims trailing spaces, collapses blank lines, strips invisible characters.',
+    },
+    'json-flatten': {
+      label: 'JSON Flatten / Unflatten',
+      description: 'Flattens nested JSON to single-level `a.b.c` keys or expands them back.',
+    },
+    'json-csv': {
+      label: 'JSON ↔ CSV',
+      description: 'Converts a flat object array to CSV or turns CSV back into an object array.',
+    },
+    curl: {
+      label: 'cURL Parse / Build',
+      description:
+        'Parses a cURL command into method/url/headers/body or builds a command from it.',
+    },
+    regex: {
+      label: 'Regex Test',
+      description:
+        'Applies a pattern to the text; lists matches, replaces them, or splits the text.',
+    },
+    'number-base': {
+      label: 'Number Base Convert',
+      description: 'Converts integers between base 2/8/10/16 (BigInt); can show all bases at once.',
+    },
+    html: {
+      label: 'HTML Minify / Format',
+      description:
+        'Indents HTML for readability or minifies to one line; handles void and raw elements.',
+    },
   },
   crumbs: {
     runHistory: 'Run history',

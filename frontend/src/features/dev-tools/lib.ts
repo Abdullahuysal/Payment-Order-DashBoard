@@ -18,7 +18,7 @@ function indentUnit(token: string): string {
   return '  ';
 }
 
-function splitLines(input: string): string[] {
+export function splitLines(input: string): string[] {
   return input.split(/\r\n|\r|\n/);
 }
 

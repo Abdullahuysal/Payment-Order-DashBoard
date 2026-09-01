@@ -30,7 +30,23 @@ export type TestRunScenarioId =
   | 'retail-shipment-advance'
   | 'merchant-shipment-advance';
 
-export type DevToolPageId = 'json' | 'xml' | 'list' | 'sql-list';
+export type DevToolPageId =
+  | 'json'
+  | 'xml'
+  | 'list'
+  | 'sql-list'
+  | 'jwt'
+  | 'base64'
+  | 'url'
+  | 'timestamp'
+  | 'case'
+  | 'whitespace'
+  | 'json-flatten'
+  | 'json-csv'
+  | 'curl'
+  | 'regex'
+  | 'number-base'
+  | 'html';
 
 export type SubPageId = TestRunScenarioId | DevToolPageId;
 
@@ -61,6 +77,18 @@ export const DEV_TOOL_PAGES: readonly SubPageDef[] = [
   { id: 'xml', path: 'xml' },
   { id: 'list', path: 'list' },
   { id: 'sql-list', path: 'sql-list' },
+  { id: 'jwt', path: 'jwt' },
+  { id: 'base64', path: 'base64' },
+  { id: 'url', path: 'url' },
+  { id: 'timestamp', path: 'timestamp' },
+  { id: 'case', path: 'case' },
+  { id: 'whitespace', path: 'whitespace' },
+  { id: 'json-flatten', path: 'json-flatten' },
+  { id: 'json-csv', path: 'json-csv' },
+  { id: 'curl', path: 'curl' },
+  { id: 'regex', path: 'regex' },
+  { id: 'number-base', path: 'number-base' },
+  { id: 'html', path: 'html' },
 ] as const;
 
 export const MODULES: readonly ModuleDef[] = [
