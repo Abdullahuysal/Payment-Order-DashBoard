@@ -9,6 +9,9 @@ using PaymentOrderOps.Api.Features.TestRuns.V1.Shared;
 using PaymentOrderOps.Api.Infrastructure;
 using PaymentOrderOps.Api.Infrastructure.Endpoints;
 using PaymentOrderOps.Api.Options;
+using PaymentOrderOps.Api.Features.Logs.V1.Shared;
+using PaymentOrderOps.Infrastructure.Ai;
+using PaymentOrderOps.Infrastructure.Logs;
 using PaymentOrderOps.Infrastructure.Messaging;
 using PaymentOrderOps.Infrastructure;
 using PaymentOrderOps.Infrastructure.Persistence;
@@ -60,6 +63,11 @@ builder.Services.AddServiceHealthProbe(builder.Configuration);
 builder.Services.AddMessageBrokers(builder.Configuration);
 builder.Services.AddScoped<MessageBrokerResolver>();
 builder.Services.AddScoped<QueueScopeResolver>();
+
+builder.Services.AddLogSearch(builder.Configuration);
+builder.Services.AddAiSummarizer(builder.Configuration);
+builder.Services.AddScoped<LogSearchResolver>();
+builder.Services.AddHostedService<LogAiSummaryWorker>();
 
 builder.Services.AddTestRuns(builder.Configuration);
 builder.Services.AddHostedService<TestRunWorker>();

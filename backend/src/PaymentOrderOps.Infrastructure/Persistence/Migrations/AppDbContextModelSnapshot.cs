@@ -22,6 +22,65 @@ namespace PaymentOrderOps.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PaymentOrderOps.Domain.Logs.LogAiSummary", b =>
+                {
+                    b.Property<string>("Environment")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Dev");
+
+                    b.Property<DateTime>("WindowStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("WindowEndUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FiltersHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GroupCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Environment", "WindowStartUtc", "WindowEndUtc", "FiltersHash");
+
+                    b.ToTable("LogAiSummaries", (string)null);
+                });
+
+            modelBuilder.Entity("PaymentOrderOps.Domain.Logs.LogSavedQuery", b =>
+                {
+                    b.Property<string>("Environment")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Dev");
+
+                    b.Property<string>("Queries")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Queries");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Environment");
+
+                    b.ToTable("LogSavedQueries", (string)null);
+                });
+
             modelBuilder.Entity("PaymentOrderOps.Domain.Messaging.QueueScopeProfile", b =>
                 {
                     b.Property<string>("Environment")

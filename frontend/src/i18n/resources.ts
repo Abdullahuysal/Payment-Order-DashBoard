@@ -1,8 +1,10 @@
 import enCommon from './locales/en/common';
+import enLogs from './locales/en/logs';
 import enNav from './locales/en/nav';
 import enOrders from './locales/en/orders';
 import enTodo from './locales/en/todo';
 import trCommon from './locales/tr/common';
+import trLogs from './locales/tr/logs';
 import trNav from './locales/tr/nav';
 import trOrders from './locales/tr/orders';
 import trTodo from './locales/tr/todo';
@@ -15,12 +17,14 @@ export const resources = {
     nav: trNav,
     orders: trOrders,
     todo: trTodo,
+    logs: trLogs,
   },
   en: {
     common: enCommon,
     nav: enNav,
     orders: enOrders,
     todo: enTodo,
+    logs: enLogs,
   },
 };
 

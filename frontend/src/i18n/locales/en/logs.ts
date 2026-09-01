@@ -1,0 +1,123 @@
+import type trLogs from '../tr/logs';
+
+const logs: typeof trLogs = {
+  page: {
+    title: 'Logs & AI',
+    subtitle:
+      'Elasticsearch log search, exception groups and an AI “what happened” take for the selected window — {{env}} environment, read-only.',
+  },
+  tabs: {
+    logs: 'Logs',
+    exceptionsAi: 'Exception & AI',
+  },
+  filter: {
+    qPlaceholder: 'Free-text search…',
+    qAria: 'Log search text',
+    levelLabel: 'Level',
+    serviceLabel: 'Service',
+    servicePlaceholder: 'all services',
+    serviceAria: 'Service filter',
+    traceIdLabel: 'traceId',
+    traceIdPlaceholder: 'trace id',
+    traceIdAria: 'traceId filter',
+    rangeAria: 'Time range',
+    from: 'From',
+    to: 'To',
+    reset: 'Clear filters',
+  },
+  presets: {
+    '15m': '15 min',
+    '1h': '1 hour',
+    '24h': '24 hours',
+    custom: 'Custom',
+  },
+  levels: {
+    trace: 'Trace',
+    debug: 'Debug',
+    info: 'Info',
+    warn: 'Warn',
+    error: 'Error',
+    fatal: 'Fatal',
+  },
+  facets: {
+    title: 'Level breakdown',
+    empty: 'No facet data for this range.',
+  },
+  histogram: {
+    title: 'Timeline',
+    empty: 'No records in this range.',
+    bucketTitle: '{{time}} · {{count}} records',
+  },
+  table: {
+    time: 'Time',
+    level: 'Level',
+    service: 'Service',
+    message: 'Message',
+    traceId: 'traceId',
+    empty: 'No matching logs. Loosen the filters or widen the range.',
+    rowAria: '{{time}} — {{message}}',
+    total: '{{value}} records',
+  },
+  detail: {
+    title: 'Log entry',
+    fields: {
+      timestamp: 'Time',
+      level: 'Level',
+      service: 'Service',
+      logger: 'Logger',
+      traceId: 'traceId',
+      spanId: 'spanId',
+      orderId: 'Order No',
+      exceptionType: 'Exception',
+    },
+    message: 'Message',
+    rawFields: 'Raw fields',
+    stackTrace: 'Stack trace',
+    noStackTrace: 'No stack trace.',
+    copyTrace: 'Copy traceId',
+  },
+  exceptions: {
+    title: 'Exception groups',
+    empty: 'No exceptions in this range.',
+    count: '{{count}}×',
+    seen: 'first {{first}} · last {{last}}',
+    services: 'Services',
+    sampleTrace: 'Sample traceId',
+    showStack: 'Show stack trace',
+    hideStack: 'Hide stack trace',
+    noStack: 'No sample stack trace.',
+  },
+  ai: {
+    title: 'End-of-day take',
+    description: 'AI “what happened” summary for the selected log window.',
+    generate: 'Generate take',
+    regenerate: 'Regenerate',
+    generating: 'Generating…',
+    empty: 'No take generated yet. Pick a range and hit “Generate take”.',
+    headline: 'Summary',
+    group: {
+      rootCause: 'Likely root cause',
+      impact: 'Impact',
+      suggestedAction: 'Suggested action',
+      relatedTraces: 'Related traceIds',
+    },
+    confidence: {
+      low: 'Low confidence',
+      medium: 'Medium confidence',
+      high: 'High confidence',
+    },
+    meta: {
+      generatedAt: 'generated {{relative}}',
+      cached: 'cached',
+      model: 'model: {{model}}',
+    },
+  },
+  states: {
+    loading: 'Loading…',
+    error: 'Could not load data: {{message}}',
+    notConfigured: 'Elastic/AI is not configured for this environment.',
+    retry: 'Try again',
+  },
+};
+
+export default logs;

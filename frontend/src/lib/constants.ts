@@ -76,7 +76,7 @@ export const MODULES: readonly ModuleDef[] = [
   { id: 'orders', path: 'orders', icon: PackageSearch, implemented: true },
   { id: 'queues', path: 'queues', icon: Inbox, implemented: true },
   { id: 'errors', path: 'errors', icon: TriangleAlert, implemented: false },
-  { id: 'logs', path: 'logs', icon: ScrollText, implemented: false },
+  { id: 'logs', path: 'logs', icon: ScrollText, implemented: true },
   {
     id: 'dev-tools',
     path: 'dev-tools',

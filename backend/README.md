@@ -1,6 +1,49 @@
-# Payment & Order Ops — Backend
+<div align="center">
 
-Internal ops API that backs the `frontend/` dashboard. Slices shipped so far:
+# Payment &amp; Order Ops — Backend
+
+### The .NET 10 ops API behind the [`frontend/`](../frontend/) dashboard.
+
+Read‑only observability plus a few controlled write actions, one API host, three logical
+environments selected per request via `X-Environment`.
+
+<br/>
+
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)
+![Minimal API](https://img.shields.io/badge/Minimal_API-TypedResults-512BD4?style=for-the-badge)
+
+![EF Core](https://img.shields.io/badge/EF_Core-10-512BD4?style=flat-square)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=flat-square&logo=rabbitmq&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Kafka-231F20?style=flat-square&logo=apachekafka&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=flat-square&logo=elasticsearch&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar_UI-6BA539?style=flat-square&logo=openapiinitiative&logoColor=white)
+![Serilog](https://img.shields.io/badge/Serilog-structured_logs-1F8DD6?style=flat-square)
+
+</div>
+
+---
+
+## Contents
+
+- [Slices shipped so far](#slices-shipped-so-far)
+- [Platform](#platform)
+- [Prerequisites](#prerequisites)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Database migrations](#database-migrations)
+- [Tests](#tests)
+- [Project layout](#project-layout)
+- [API — Service Health](#api--service-health)
+- [API — Message Queues & DLQ](#api--message-queues--dlq)
+- [API — Test Runs](#api--test-runs)
+- [Architecture decisions](#architecture-decisions)
+- [Notes](#notes)
+
+---
+
+## Slices shipped so far
 
 - **Service Health check definitions** — a CRUD store for probe/curl definitions (does
   **not** execute probes).
@@ -11,8 +54,48 @@ Internal ops API that backs the `frontend/` dashboard. Slices shipped so far:
   asynchronous runs executed by a background worker against config-driven **company targets**
   (HTTP APIs, SOAP services, a read-only SQL Server). Live progress over SSE; optional bulk
   repeat. Disabled in `production`.
+- **Logs & AI** — Elasticsearch-backed log search, exception grouping, saved queries, and an
+  AI *“what happened”* summary (Anthropic) with a hashed-filter cache and a background
+  refresh worker.
+- **Todo** — a small per-person task list used by the team.
 
-Other modules (orders, logs, auth) are not implemented yet.
+Order lookup and auth are not implemented yet.
+
+```mermaid
+flowchart LR
+    SPA["frontend SPA"]
+
+    subgraph API["PaymentOrderOps.Api  ·  /api/v1"]
+        direction TB
+        SH["ServiceHealth"]
+        MQ["MessageQueues"]
+        TR["TestRuns"]
+        LG["Logs"]
+        TD["Todo"]
+    end
+
+    PG[("PostgreSQL 17<br/>Npgsql · EF Core 10")]
+    RMQ[("RabbitMQ<br/>management HTTP API")]
+    KFK[("Kafka<br/>Confluent.Kafka admin")]
+    MSSQL[("Company SQL Server<br/>db_datareader only")]
+    ESH[("Elasticsearch")]
+    ANTH{{"Anthropic API"}}
+
+    SPA -- "X-Environment" --> API
+    SH --> PG
+    MQ --> RMQ
+    MQ --> KFK
+    TR --> PG
+    TR --> MSSQL
+    LG --> PG
+    LG --> ESH
+    LG --> ANTH
+    TD --> PG
+```
+
+---
+
+## Platform
 
 **Single deployment, three logical environments.** One host + one connection string hold
 `dev` / `preprod` / `production` data; every request carries an `X-Environment` header that
@@ -78,6 +161,8 @@ Then:
 | `Auth:<Env>:<authRef>` | `Kind` = `none` \| `static` \| `tokenEndpoint` \| `serviceHeader`, plus kind-specific keys (`Header`, `Value`, `Url`, `Method`, `BodyTemplate`, `TokenPath`, `ValuePath`, `Format`, `TtlSeconds`) | referenced but missing → `503` at run start |
 | `TestRuns:AllowedEnvironments` | environments where runs are permitted | `[ dev, preprod ]` |
 | `TestRuns:MaxBulkCount` / `TestRuns:MaxBulkConcurrency` | bulk `repeat` ceilings (`400` if exceeded) | `10` / `5` |
+| `Logs:<Env>:Elasticsearch` | `Uri` · `Username` / `Password` **or** `ApiKey` · `IndexPattern` (default `logs-*`) · `FieldMap` (ECS overrides) · `RedactFields` (`string[]`) · `MaxPageSize` · `ExceptionScanSize` · `RequestTimeoutSeconds` | blank `Uri` → `503` from every `/logs` endpoint in that env; unreachable → `502` |
+| `Ai:<Env>` | `ApiKey` · `BaseUrl` (default `https://api.anthropic.com`) · `Model` · `AnthropicVersion` (header, default `2023-06-01`) · `MaxTokens` · `TimeoutSeconds` | blank `ApiKey` → `503` from `POST /logs/ai-summary`; call failure → `502` |
 | `Serilog:*` | sink / level configuration | Console, `Information` |
 
 CORS also exposes the `X-Correlation-ID` response header so the SPA can log it.
@@ -147,7 +232,14 @@ dotnet test
 
 Integration tests (`tests/PaymentOrderOps.Api.Tests`) run the real API through
 `WebApplicationFactory` against a throwaway **PostgreSQL container** (Testcontainers), so
-**Docker must be running**. Service Health: list/seed, create + round-trip, duplicate → 409,
+**Docker must be running**.
+
+<details>
+<summary><b>Coverage by slice</b> — what the suite actually asserts</summary>
+
+<br/>
+
+Service Health: list/seed, create + round-trip, duplicate → 409,
 validation → 400, not-found → 404, full replace, soft-delete, missing/invalid
 `X-Environment` → 400, cross-environment isolation (`404` + hidden from list), same
 URL allowed in two environments, body/header environment mismatch → 400.
@@ -169,6 +261,8 @@ assertion skips the rest and fails the run, a configured secret never appears in
 step, unconfigured target family → 503, SSE emits `snapshot` → step events → `run-finished`,
 `/cancel` (running → cancelled, terminal → 409, unknown → 404), bulk `count=3` → parent + 3
 child iterations + summary, `count=11` → 400.
+
+</details>
 
 ## Project layout
 
@@ -351,6 +445,34 @@ secret, and every token the broker resolves for that run — applied **before** 
   `WITH` only, no DML/DDL keywords) — give it a connection string for a `db_datareader`-only
   account. This is a pragmatic allow-list, not a full parser; step-schema validation is the
   first line of defence.
+
+## API — Logs & AI
+
+Base: `/api/v1/logs` · **`X-Environment: dev | preprod | production` required** on every call
+(missing/invalid → `400 ProblemDetails`). The header selects the Elasticsearch connection and
+the Anthropic connection for that environment. Not configured → `503`; configured but
+unreachable → `502`; both as `ProblemDetails`.
+
+| Method | Route | Result |
+| --- | --- | --- |
+| `GET` | `/` | `200` `LogSearchResponse` — `?q` (simple_query_string over message/error/logger) `?level` `?service` `?traceId` `?from` `?to` `?page` `?pageSize` (≤ `200`). `page` is `{ items, page, pageSize, totalCount, totalPages }`; `facets` are whole-result term counts for `level` and `service`. `400` on bad paging / a window over 31 days |
+| `GET` | `/{id}` | `200` `LogEntryResponse` · `404` (unknown Elasticsearch `_id`) |
+| `GET` | `/exceptions` | `200` `ExceptionGroupResponse[]` — `?from` `?to` `?service`. Groups by `fingerprint = sha1(type + '\n' + normalizedMessage + '\n' + topFrame)`; `normalizedMessage` collapses every number, GUID and date to `*`. Ordered by `count` desc |
+| `POST` | `/ai-summary` | `{ from, to, filters?: { text, level, service, traceId }, force? }` → `200` `AiSummaryResponse`. Looks in the cache first (`LogAiSummaries`, keyed by `environment + window + sha1(filters)`); on a miss it groups exceptions, calls the LLM, stores the result. `force: true` bypasses the cache. `400` on an inverted / over-31-day window |
+| `GET` | `/saved-queries` | `200` `{ queries: [{ name, text?, level?, service?, traceId? }], updatedAt }` (no row → `{ queries: [], updatedAt: null }`) |
+| `PUT` | `/saved-queries` | body `{ queries: [...] }` → `200` + resource. Upsert, one row per environment, last-write-wins. Names are de-duplicated case-insensitively. `400` on a null list / > 50 entries / a blank or > 120-char name / a field over 512 chars |
+
+The LLM answer follows a fixed JSON contract
+(`{ headline, groups: [{ index, rootCauseGuess, impact, suggestedAction, confidence }] }`);
+`index` points back into the request's exception-group list. `LogAiSummaryWorker` runs the
+same group-then-summarize path once a day at **18:05 UTC** for every configured environment and
+stores the digest under the empty-filter hash; an unconfigured or unreachable environment is
+logged and skipped.
+
+**Redaction.** Before any hit leaves the Elasticsearch gateway, `LogRedaction` masks (1) every
+source field named in `Logs:<Env>:Elasticsearch:RedactFields` and (2) secret-looking substrings
+anywhere in a string value (`Bearer …`, `api_key=…`, `password=…`, long hex / base64 blobs) →
+`***`. No secret reaches a response or a log line.
 
 ## Architecture decisions
 

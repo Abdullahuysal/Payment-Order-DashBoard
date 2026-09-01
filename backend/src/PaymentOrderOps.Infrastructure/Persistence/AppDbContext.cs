@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PaymentOrderOps.Domain.Logs;
 using PaymentOrderOps.Domain.Messaging;
 using PaymentOrderOps.Domain.ServiceHealth;
 using PaymentOrderOps.Domain.TestRuns;
@@ -19,6 +20,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<ServiceHealthCheck> ServiceHealthChecks => Set<ServiceHealthCheck>();
 
     public DbSet<QueueScopeProfile> QueueScopeProfiles => Set<QueueScopeProfile>();
+
+    public DbSet<LogAiSummary> LogAiSummaries => Set<LogAiSummary>();
+
+    public DbSet<LogSavedQuery> LogSavedQueries => Set<LogSavedQuery>();
 
     public DbSet<TestScenario> TestScenarios => Set<TestScenario>();
 
@@ -74,6 +79,22 @@ public sealed class AppDbContext : DbContext
             if (entry.State is EntityState.Added or EntityState.Modified)
             {
                 entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<LogSavedQuery>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified)
+            {
+                entry.Property(e => e.UpdatedAtUtc).CurrentValue = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<LogAiSummary>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(e => e.CreatedAtUtc).CurrentValue = now;
             }
         }
 
